@@ -159,6 +159,8 @@ def run_command(command: List[str], cwd: str = None, timeout: int = 300) -> Tupl
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
+            encoding='utf-8',
+            errors='replace',  # Replace invalid characters instead of failing
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
         )
         

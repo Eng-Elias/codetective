@@ -233,50 +233,7 @@ class CodeDetectiveOrchestrator:
         
         return updates
     
-    def _run_semgrep(self, state: ScanState) -> Dict[str, Any]:
-        """Run SemGrep agent."""
-        updates = {}
-        
-        if AgentType.SEMGREP in state["config"].agents and self.semgrep_agent.is_available():
-            try:
-                result = self.semgrep_agent.execute(state["paths"])
-                updates["agent_results"] = [result]
-                if result.success:
-                    updates["semgrep_issues"] = result.issues
-            except Exception as e:
-                updates["error_messages"] = [f"SemGrep error: {e}"]
-        
-        return updates
-    
-    def _run_trivy(self, state: ScanState) -> Dict[str, Any]:
-        """Run Trivy agent."""
-        updates = {}
-        
-        if AgentType.TRIVY in state["config"].agents and self.trivy_agent.is_available():
-            try:
-                result = self.trivy_agent.execute(state["paths"])
-                updates["agent_results"] = [result]
-                if result.success:
-                    updates["trivy_issues"] = result.issues
-            except Exception as e:
-                updates["error_messages"] = [f"Trivy error: {e}"]
-        
-        return updates
-    
-    def _run_ai_review(self, state: ScanState) -> Dict[str, Any]:
-        """Run AI Review agent."""
-        updates = {}
-        
-        if AgentType.AI_REVIEW in state["config"].agents and self.ai_review_agent.is_available():
-            try:
-                result = self.ai_review_agent.execute(state["paths"])
-                updates["agent_results"] = [result]
-                if result.success:
-                    updates["ai_review_issues"] = result.issues
-            except Exception as e:
-                updates["error_messages"] = [f"AI Review error: {e}"]
-        
-        return updates
+
     
     def _aggregate_scan_results(self, state: ScanState) -> ScanState:
         """Aggregate all scan results."""
