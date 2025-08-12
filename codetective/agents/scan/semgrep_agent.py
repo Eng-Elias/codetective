@@ -28,29 +28,29 @@ class SemGrepAgent(ScanAgent):
         """Scan files using SemGrep."""
         issues = []
         
-        # Get supported files (common programming languages)
-        supported_extensions = [
-            '.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.c', '.cpp', '.h', '.hpp',
-            '.cs', '.php', '.rb', '.go', '.rs', '.swift', '.kt', '.scala', '.sh',
-            '.yaml', '.yml', '.json', '.xml', '.html', '.css', '.sql'
-        ]
-        
-        supported_files = self._get_supported_files(files, supported_extensions)
-        
-        if not supported_files:
-            return issues
+        # Use the first directory or current directory for scanning
+        scan_path = "."
+        if files:
+            first_path = Path(files[0])
+            if first_path.is_dir():
+                scan_path = str(first_path)
+            elif first_path.is_file():
+                scan_path = str(first_path.parent)
         
         try:
-            # Run SemGrep with JSON output
+            # Run SemGrep with the exact command that works: semgrep --config=r/all .
             cmd = [
                 "semgrep",
-                "--config=auto",  # Use automatic rule selection
+                "--config=r/all",
                 "--json",
-                "--no-git-ignore",
-                "--timeout", str(self.config.agent_timeout)
-            ] + supported_files
+                "--timeout", "60",  # SemGrep internal timeout
+                scan_path
+            ]
             
-            success, stdout, stderr = run_command(cmd, timeout=self.config.agent_timeout)
+            # Use shorter timeout and set working directory
+            timeout = min(self.config.agent_timeout, 90)  # Max 90 seconds
+            cwd = scan_path if scan_path != "." else None
+            success, stdout, stderr = run_command(cmd, cwd=cwd, timeout=timeout)
             
             if not success:
                 raise Exception(f"SemGrep execution failed: {stderr}")
@@ -66,6 +66,28 @@ class SemGrepAgent(ScanAgent):
             raise Exception(f"SemGrep scan failed: {e}")
         
         return issues
+    
+    def _prepare_scan_paths(self, files: List[str]) -> List[str]:
+        """Prepare paths for SemGrep scanning to avoid filename length issues."""
+        scan_paths = []
+        processed_dirs = set()
+        
+        for file_path in files:
+            path = Path(file_path)
+            
+            if path.is_dir():
+                # Use directory directly
+                if str(path) not in processed_dirs:
+                    scan_paths.append(str(path))
+                    processed_dirs.add(str(path))
+            else:
+                # For individual files, use the parent directory
+                parent_dir = path.parent
+                if str(parent_dir) not in processed_dirs:
+                    scan_paths.append(str(parent_dir))
+                    processed_dirs.add(str(parent_dir))
+        
+        return scan_paths
     
     def _parse_semgrep_results(self, semgrep_data: dict) -> List[Issue]:
         """Parse SemGrep JSON results into Issue objects."""

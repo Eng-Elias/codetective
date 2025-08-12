@@ -68,19 +68,13 @@ class CodeDetectiveOrchestrator:
         
         # Add nodes
         workflow.add_node("start_scan", self._start_scan)
-        workflow.add_node("semgrep_scan", self._run_semgrep)
-        workflow.add_node("trivy_scan", self._run_trivy)
-        workflow.add_node("ai_review_scan", self._run_ai_review)
+        workflow.add_node("run_agents", self._run_all_agents)
         workflow.add_node("aggregate_results", self._aggregate_scan_results)
         
-        # Add edges
+        # Add edges - simplified to avoid parallel execution issues
         workflow.set_entry_point("start_scan")
-        workflow.add_edge("start_scan", "semgrep_scan")
-        workflow.add_edge("start_scan", "trivy_scan")
-        workflow.add_edge("start_scan", "ai_review_scan")
-        workflow.add_edge("semgrep_scan", "aggregate_results")
-        workflow.add_edge("trivy_scan", "aggregate_results")
-        workflow.add_edge("ai_review_scan", "aggregate_results")
+        workflow.add_edge("start_scan", "run_agents")
+        workflow.add_edge("run_agents", "aggregate_results")
         workflow.add_edge("aggregate_results", END)
         
         self.scan_graph = workflow.compile()
@@ -190,6 +184,54 @@ class CodeDetectiveOrchestrator:
     def _start_scan(self, state: ScanState) -> ScanState:
         """Initialize scan state."""
         return state
+    
+    def _run_all_agents(self, state: ScanState) -> Dict[str, Any]:
+        """Run all selected agents sequentially to avoid duplicates."""
+        updates = {
+            "agent_results": [],
+            "semgrep_issues": [],
+            "trivy_issues": [],
+            "ai_review_issues": [],
+            "error_messages": []
+        }
+        
+        # Run SemGrep if selected
+        if AgentType.SEMGREP in state["config"].agents and self.semgrep_agent.is_available():
+            try:
+                result = self.semgrep_agent.execute(state["paths"])
+                updates["agent_results"].append(result)
+                if result.success:
+                    updates["semgrep_issues"].extend(result.issues)
+                else:
+                    updates["error_messages"].append(result.error_message or "SemGrep failed")
+            except Exception as e:
+                updates["error_messages"].append(f"SemGrep error: {e}")
+        
+        # Run Trivy if selected
+        if AgentType.TRIVY in state["config"].agents and self.trivy_agent.is_available():
+            try:
+                result = self.trivy_agent.execute(state["paths"])
+                updates["agent_results"].append(result)
+                if result.success:
+                    updates["trivy_issues"].extend(result.issues)
+                else:
+                    updates["error_messages"].append(result.error_message or "Trivy failed")
+            except Exception as e:
+                updates["error_messages"].append(f"Trivy error: {e}")
+        
+        # Run AI Review if selected
+        if AgentType.AI_REVIEW in state["config"].agents and self.ai_review_agent.is_available():
+            try:
+                result = self.ai_review_agent.execute(state["paths"])
+                updates["agent_results"].append(result)
+                if result.success:
+                    updates["ai_review_issues"].extend(result.issues)
+                else:
+                    updates["error_messages"].append(result.error_message or "AI Review failed")
+            except Exception as e:
+                updates["error_messages"].append(f"AI Review error: {e}")
+        
+        return updates
     
     def _run_semgrep(self, state: ScanState) -> Dict[str, Any]:
         """Run SemGrep agent."""
