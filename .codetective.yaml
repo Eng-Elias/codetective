@@ -1,0 +1,27 @@
+# Codetective Configuration File
+# Place this file in your project root or home directory
+
+# Agent configuration
+semgrep_enabled: true
+trivy_enabled: true
+ai_review_enabled: true
+
+# Timeout settings (in seconds)
+default_timeout: 300
+agent_timeout: 120
+
+# Ollama configuration for AI features
+ollama_base_url: "http://localhost:11434"
+ollama_model: "codellama"
+
+# File handling
+max_file_size: 10485760  # 10MB in bytes
+backup_files: true
+
+# Output configuration
+output_format: "json"
+verbose: false
+
+# GUI configuration
+gui_host: "localhost"
+gui_port: 8501
