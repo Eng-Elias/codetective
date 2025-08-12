@@ -3,11 +3,9 @@ LangGraph orchestrator for coordinating Codetective agents.
 """
 
 import time
-from typing import List, Dict, Any, Optional
-from operator import add
+from typing import Dict, List, Any, Optional
+from typing_extensions import TypedDict
 from langgraph.graph import StateGraph, END
-from langgraph.graph.message import add_messages
-from typing_extensions import Annotated, TypedDict
 
 from ..models.schemas import (
     ScanConfig, FixConfig, ScanResult, FixResult, AgentResult, 
@@ -24,25 +22,25 @@ class ScanState(TypedDict):
     """State for scan operations."""
     config: ScanConfig
     paths: List[str]
-    agent_results: Annotated[List[AgentResult], add]
-    semgrep_issues: Annotated[List[Issue], add]
-    trivy_issues: Annotated[List[Issue], add]
-    ai_review_issues: Annotated[List[Issue], add]
+    agent_results: List[AgentResult]
+    semgrep_issues: List[Issue]
+    trivy_issues: List[Issue]
+    ai_review_issues: List[Issue]
     total_issues: int
     scan_duration: float
-    error_messages: Annotated[List[str], add]
+    error_messages: List[str]
 
 
 class FixState(TypedDict):
     """State for fix operations."""
     config: FixConfig
     scan_data: Dict[str, Any]
-    issues_to_fix: Annotated[List[Issue], add]
-    fixed_issues: Annotated[List[Issue], add]
-    failed_issues: Annotated[List[Issue], add]
-    modified_files: Annotated[List[str], add]
+    issues_to_fix: List[Issue]
+    fixed_issues: List[Issue]
+    failed_issues: List[Issue]
+    modified_files: List[str]
     fix_duration: float
-    error_messages: Annotated[List[str], add]
+    error_messages: List[str]
 
 
 class CodeDetectiveOrchestrator:
