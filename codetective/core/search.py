@@ -3,14 +3,17 @@ Search utilities for Codetective AI agents.
 """
 
 import logging
+import requests
 from typing import List, Dict, Any, Optional
-from duckduckgo_search import DDGS
+from ddgs import DDGS
+from bs4 import BeautifulSoup
+import time
 
 logger = logging.getLogger(__name__)
 
 
 class SearchTool:
-    """DuckDuckGo search tool for AI agents."""
+    """DuckDuckGo search tool for AI agents with URL content fetching."""
     
     def __init__(self, max_results: int = 5):
         """Initialize search tool.
@@ -20,6 +23,10 @@ class SearchTool:
         """
         self.max_results = max_results
         self.ddgs = DDGS()
+        self.session = requests.Session()
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        })
     
     def search(self, query: str, search_type: str = "text") -> List[Dict[str, Any]]:
         """Perform a search query.
@@ -103,6 +110,80 @@ class SearchTool:
             query = f"{library} documentation official guide"
         
         return self.search(query)
+    
+    def fetch_url_content(self, url: str, max_length: int = 5000) -> Optional[str]:
+        """Fetch and extract text content from a URL.
+        
+        Args:
+            url: URL to fetch content from
+            max_length: Maximum length of content to return
+            
+        Returns:
+            Extracted text content or None if failed
+        """
+        try:
+            response = self.session.get(url, timeout=10)
+            response.raise_for_status()
+            
+            # Parse HTML content
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Remove script and style elements
+            for script in soup(["script", "style"]):
+                script.decompose()
+            
+            # Extract text
+            text = soup.get_text()
+            
+            # Clean up text
+            lines = (line.strip() for line in text.splitlines())
+            chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+            text = ' '.join(chunk for chunk in chunks if chunk)
+            
+            # Truncate if too long
+            if len(text) > max_length:
+                text = text[:max_length] + "..."
+            
+            return text
+            
+        except Exception as e:
+            logger.error(f"Failed to fetch URL content from {url}: {e}")
+            return None
+    
+    def search_with_content(self, query: str, fetch_content: bool = True) -> List[Dict[str, Any]]:
+        """Search and optionally fetch full content from URLs.
+        
+        Args:
+            query: Search query
+            fetch_content: Whether to fetch full content from URLs
+            
+        Returns:
+            Search results with optional full content
+        """
+        results = self.search(query)
+        
+        if not fetch_content:
+            return results
+        
+        enhanced_results = []
+        for result in results:
+            enhanced_result = result.copy()
+            
+            # Fetch full content if URL is available
+            if result.get('url'):
+                content = self.fetch_url_content(result['url'])
+                if content:
+                    enhanced_result['full_content'] = content
+                    enhanced_result['has_full_content'] = True
+                else:
+                    enhanced_result['has_full_content'] = False
+            
+            enhanced_results.append(enhanced_result)
+            
+            # Add small delay to be respectful to servers
+            time.sleep(0.5)
+        
+        return enhanced_results
 
 
 def create_search_tool(config: Optional[Dict[str, Any]] = None) -> Optional[SearchTool]:

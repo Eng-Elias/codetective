@@ -12,7 +12,7 @@ agent_timeout: 120
 
 # Ollama configuration for AI features
 ollama_base_url: "http://localhost:11434"
-ollama_model: "qwen:4b"
+ollama_model: "qwen3:4b"
 
 # Search configuration
 search_enabled: true

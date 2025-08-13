@@ -12,9 +12,9 @@ from ..models.schemas import (
     AgentType, Issue, IssueStatus
 )
 from ..agents import (
-    SemGrepAgent, TrivyAgent, AIReviewAgent, 
-    CommentAgent, EditAgent
+    SemGrepAgent, TrivyAgent, CommentAgent, EditAgent
 )
+from ..agents.scan.dynamic_ai_agent import DynamicAIReviewAgent
 from .config import Config
 
 
@@ -53,10 +53,10 @@ class CodeDetectiveOrchestrator:
         self._build_fix_graph()
     
     def _initialize_agents(self):
-        """Initialize all agents."""
+        # Initialize agents
         self.semgrep_agent = SemGrepAgent(self.config)
         self.trivy_agent = TrivyAgent(self.config)
-        self.ai_review_agent = AIReviewAgent(self.config)
+        self.ai_review_agent = DynamicAIReviewAgent(self.config)  # Use dynamic agent
         self.comment_agent = CommentAgent(self.config)
         self.edit_agent = EditAgent(self.config)
     

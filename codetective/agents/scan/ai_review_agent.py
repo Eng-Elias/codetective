@@ -20,7 +20,7 @@ class AIReviewAgent(ScanAgent):
         super().__init__(config)
         self.agent_type = AgentType.AI_REVIEW
         self.ollama_url = config.ollama_base_url
-        self.model = config.ollama_model or "qwen:4b"  # Default to qwen:4b
+        self.model = config.ollama_model or "qwen3:4b"  # Default to qwen3:4b
         self.search_tool = create_search_tool(config.__dict__ if hasattr(config, '__dict__') else {})
     
     def is_available(self) -> bool:
@@ -178,7 +178,7 @@ Response (JSON only):
         if search_results:
             context = "\nRelevant Security Context:\n"
             for i, result in enumerate(search_results[:3], 1):  # Max 3 results
-                context += f"{i}. {result['title']}: {result['body'][:200]}...\n"
+                context += f"{i}. {result['title']}: {result['body']}...\n"
             return context
         
         return ""

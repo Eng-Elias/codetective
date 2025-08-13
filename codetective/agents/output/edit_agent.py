@@ -20,7 +20,7 @@ class EditAgent(OutputAgent):
         super().__init__(config)
         self.agent_type = AgentType.EDIT
         self.ollama_url = config.ollama_base_url
-        self.model = config.ollama_model or "qwen:4b"  # Default to qwen:4b
+        self.model = config.ollama_model or "qwen3:4b"  # Default to qwen3:4b
         self.backup_files = config.backup_files
         self.search_tool = create_search_tool(config.__dict__ if hasattr(config, '__dict__') else {})
     
