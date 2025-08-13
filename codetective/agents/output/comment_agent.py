@@ -3,11 +3,12 @@ Comment agent for generating explanatory comments using AI.
 """
 
 import requests
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from pathlib import Path
 
 from ...models.schemas import AgentType, Issue, IssueStatus
 from ...core.utils import check_tool_availability, get_file_content
+from ...core.search import create_search_tool, SearchTool
 from ..base import OutputAgent
 
 
@@ -18,7 +19,8 @@ class CommentAgent(OutputAgent):
         super().__init__(config)
         self.agent_type = AgentType.COMMENT
         self.ollama_url = config.ollama_base_url
-        self.model = config.ollama_model
+        self.model = config.ollama_model or "qwen:4b"  # Default to qwen:4b
+        self.search_tool = create_search_tool(config.__dict__ if hasattr(config, '__dict__') else {})
     
     def is_available(self) -> bool:
         """Check if Ollama is available for comment generation."""

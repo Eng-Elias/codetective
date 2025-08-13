@@ -4,11 +4,12 @@ Edit agent for automatically applying code fixes using AI.
 
 import requests
 import shutil
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from pathlib import Path
 
 from ...models.schemas import AgentType, Issue, IssueStatus
 from ...core.utils import check_tool_availability, get_file_content, create_backup
+from ...core.search import create_search_tool, SearchTool
 from ..base import OutputAgent
 
 
@@ -19,8 +20,9 @@ class EditAgent(OutputAgent):
         super().__init__(config)
         self.agent_type = AgentType.EDIT
         self.ollama_url = config.ollama_base_url
-        self.model = config.ollama_model
+        self.model = config.ollama_model or "qwen:4b"  # Default to qwen:4b
         self.backup_files = config.backup_files
+        self.search_tool = create_search_tool(config.__dict__ if hasattr(config, '__dict__') else {})
     
     def is_available(self) -> bool:
         """Check if Ollama is available for edit generation."""

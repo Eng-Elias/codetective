@@ -4,11 +4,12 @@ AI Review agent using Ollama for intelligent code analysis.
 
 import json
 import requests
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from pathlib import Path
 
 from ...models.schemas import AgentType, Issue, SeverityLevel, IssueStatus
 from ...core.utils import check_tool_availability, get_file_content
+from ...core.search import create_search_tool, SearchTool
 from ..base import ScanAgent
 
 
@@ -19,7 +20,8 @@ class AIReviewAgent(ScanAgent):
         super().__init__(config)
         self.agent_type = AgentType.AI_REVIEW
         self.ollama_url = config.ollama_base_url
-        self.model = config.ollama_model
+        self.model = config.ollama_model or "qwen:4b"  # Default to qwen:4b
+        self.search_tool = create_search_tool(config.__dict__ if hasattr(config, '__dict__') else {})
     
     def is_available(self) -> bool:
         """Check if Ollama is available."""
@@ -83,18 +85,27 @@ class AIReviewAgent(ScanAgent):
     def _create_review_prompt(self, file_path: str, content: str) -> str:
         """Create a prompt for AI code review."""
         file_extension = Path(file_path).suffix
+        language = self._detect_language(file_extension)
+        
+        # Get relevant search context if search tool is available
+        search_context = ""
+        if self.search_tool:
+            search_context = self._get_search_context(language, content)
         
         prompt = f"""
-You are an expert code reviewer. Please analyze the following {file_extension} file and identify potential issues.
+You are an expert code reviewer with access to current security best practices and coding standards. Please analyze the following {file_extension} file and identify potential issues.
 
 Focus on:
-1. Security vulnerabilities
-2. Code quality issues
-3. Performance problems
-4. Best practice violations
-5. Potential bugs
+1. Security vulnerabilities (SQL injection, XSS, CSRF, etc.)
+2. Code quality issues (maintainability, readability)
+3. Performance problems (inefficient algorithms, memory leaks)
+4. Best practice violations (coding standards, design patterns)
+5. Potential bugs (null pointer exceptions, race conditions)
 
 File: {file_path}
+Language: {language}
+
+{search_context}
 
 Code:
 ```{file_extension[1:] if file_extension else 'text'}
@@ -103,16 +114,74 @@ Code:
 
 Please respond with a JSON array of issues found. Each issue should have:
 - "title": Brief title of the issue
-- "description": Detailed description
+- "description": Detailed description with context from best practices
 - "severity": "low", "medium", "high", or "critical"
 - "line_number": Line number where issue occurs (if applicable)
-- "suggestion": Suggested fix or improvement
+- "suggestion": Specific fix or improvement recommendation
+- "references": Any relevant documentation or security advisories
 
 If no issues are found, return an empty array [].
 
 Response (JSON only):
 """
         return prompt
+    
+    def _detect_language(self, file_extension: str) -> str:
+        """Detect programming language from file extension."""
+        language_map = {
+            '.py': 'Python',
+            '.js': 'JavaScript',
+            '.ts': 'TypeScript',
+            '.jsx': 'React JSX',
+            '.tsx': 'React TSX',
+            '.java': 'Java',
+            '.c': 'C',
+            '.cpp': 'C++',
+            '.h': 'C Header',
+            '.hpp': 'C++ Header',
+            '.cs': 'C#',
+            '.php': 'PHP',
+            '.rb': 'Ruby',
+            '.go': 'Go',
+            '.rs': 'Rust',
+            '.swift': 'Swift',
+            '.kt': 'Kotlin',
+            '.scala': 'Scala',
+            '.sh': 'Shell Script'
+        }
+        return language_map.get(file_extension, 'Unknown')
+    
+    def _get_search_context(self, language: str, content: str) -> str:
+        """Get relevant search context for code review."""
+        if not self.search_tool:
+            return ""
+        
+        # Extract potential security patterns or frameworks from code
+        search_queries = []
+        
+        # Look for common security-sensitive patterns
+        if 'sql' in content.lower() or 'query' in content.lower():
+            search_queries.append(f"{language} SQL injection prevention")
+        
+        if 'password' in content.lower() or 'auth' in content.lower():
+            search_queries.append(f"{language} authentication security best practices")
+        
+        if 'input' in content.lower() or 'request' in content.lower():
+            search_queries.append(f"{language} input validation security")
+        
+        # Get search results
+        search_results = []
+        for query in search_queries[:2]:  # Limit to 2 searches to avoid delays
+            results = self.search_tool.search(query)
+            search_results.extend(results[:2])  # Take top 2 results per query
+        
+        if search_results:
+            context = "\nRelevant Security Context:\n"
+            for i, result in enumerate(search_results[:3], 1):  # Max 3 results
+                context += f"{i}. {result['title']}: {result['body'][:200]}...\n"
+            return context
+        
+        return ""
     
     def _call_ollama(self, prompt: str) -> str:
         """Call Ollama API for code review."""
