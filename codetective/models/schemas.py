@@ -58,12 +58,15 @@ class AgentResult(BaseModel):
 
 class ScanConfig(BaseModel):
     """Configuration for scan operations."""
-    agents: List[AgentType] = Field(default_factory=lambda: [AgentType.SEMGREP, AgentType.TRIVY, AgentType.AI_REVIEW])
+    agents: List[AgentType] = Field(default_factory=lambda: [AgentType.SEMGREP, AgentType.TRIVY])
     timeout: int = Field(default=300, description="Timeout in seconds")
     paths: List[str] = Field(default_factory=lambda: ["."], description="Paths to scan")
-    output_file: str = Field(default="codetective_scan_results.json", description="Output JSON file")
+    output_file: Optional[str] = Field(default="codetective_scan_results.json", description="Output JSON file")
     include_patterns: List[str] = Field(default_factory=list, description="File patterns to include")
     exclude_patterns: List[str] = Field(default_factory=list, description="File patterns to exclude")
+    max_files: Optional[int] = Field(None, description="Maximum number of files to scan")
+    parallel_execution: bool = Field(default=False, description="Run agents in parallel")
+    agent_timeout: int = Field(default=120, description="Individual agent timeout")
 
 
 class ScanResult(BaseModel):

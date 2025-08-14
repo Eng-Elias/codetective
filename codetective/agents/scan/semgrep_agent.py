@@ -28,16 +28,116 @@ class SemGrepAgent(ScanAgent):
         """Scan files using SemGrep."""
         issues = []
 
-        scan_path = "."
-        if files:
-            scan_path = " ".join(files)
+        if not files:
+            # Default to current directory
+            try:
+                issues = self._scan_directory(".")
+            except Exception as e:
+                print(f"Error scanning current directory: {e}")
+            return issues
 
+        # Separate files and directories
+        individual_files = []
+        directories = []
+        
+        for path in files:
+            path_obj = Path(path)
+            if path_obj.is_file():
+                individual_files.append(path)
+            elif path_obj.is_dir():
+                directories.append(path)
+            else:
+                print(f"Warning: Path does not exist: {path}")
+
+        # Scan all individual files in one batch command
+        if individual_files:
+            try:
+                batch_issues = self._scan_files_batch(individual_files)
+                issues.extend(batch_issues)
+            except Exception as e:
+                print(f"Error scanning individual files: {e}")
+
+        # Scan directories
+        for dir_path in directories:
+            try:
+                dir_issues = self._scan_directory(dir_path)
+                issues.extend(dir_issues)
+            except Exception as e:
+                print(f"Error scanning directory {dir_path}: {e}")
+                continue
+
+        return issues
+    
+    def _scan_single_file(self, file_path: str) -> List[Issue]:
+        """Scan a single file with SemGrep."""
+        try:
+            # Run SemGrep on a single file
+            cmd = [
+                "semgrep",
+                "--config=r/all",
+                "--json",
+                "--metrics=off",
+                "--timeout", "60",
+                file_path
+            ]
+            
+            timeout = min(self.config.agent_timeout, 90)
+            success, stdout, stderr = run_command(cmd, timeout=timeout)
+            
+            if not success:
+                print(f"SemGrep failed for {file_path}: {stderr}")
+                return []
+            
+            # Parse SemGrep JSON output
+            if stdout.strip():
+                semgrep_data = json.loads(stdout)
+                return self._parse_semgrep_results(semgrep_data)
+            
+        except Exception as e:
+            print(f"Error scanning file {file_path}: {e}")
+        
+        return []
+    
+    def _scan_files_batch(self, file_paths: List[str]) -> List[Issue]:
+        """Scan multiple individual files in a single SemGrep command for efficiency."""
+        try:
+            # Run SemGrep on multiple files at once
+            cmd = [
+                "semgrep",
+                "--config=r/all",
+                "--json",
+                "--metrics=off",
+                "--timeout", "60"
+            ]
+            # Add all file paths to the command
+            cmd.extend(file_paths)
+            
+            timeout = min(self.config.agent_timeout, 90)
+            success, stdout, stderr = run_command(cmd, timeout=timeout)
+            
+            if not success:
+                print(f"SemGrep batch scan failed: {stderr}")
+                return []
+            
+            # Parse SemGrep JSON output
+            if stdout.strip():
+                semgrep_data = json.loads(stdout)
+                return self._parse_semgrep_results(semgrep_data)
+            
+        except Exception as e:
+            print(f"Error in batch file scanning: {e}")
+        
+        return []
+    
+    def _scan_directory(self, scan_path: str) -> List[Issue]:
+        """Scan a directory with SemGrep."""
         try:
             # Run SemGrep with the exact command that works: semgrep --config=r/all
             cmd = [
                 "semgrep",
                 "--config=r/all",
                 "--json",
+                "--metrics=off",
                 "--timeout", "60",  # SemGrep internal timeout
                 scan_path
             ]

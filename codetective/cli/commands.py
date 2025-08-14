@@ -4,13 +4,14 @@ CLI commands implementation for Codetective.
 
 import json
 import sys
+import subprocess
 from pathlib import Path
 from typing import List, Optional
 
 import click
 from rich.console import Console
 from rich.table import Table
-from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 
 from ..core.config import get_config
 from ..core.utils import get_system_info, validate_paths
@@ -19,6 +20,130 @@ from ..models.schemas import AgentType, ScanConfig, FixConfig
 
 
 console = Console()
+
+
+def get_git_diff_files() -> List[str]:
+    """Get list of new/modified files from git diff."""
+    try:
+        # Get staged files
+        result = subprocess.run(
+            ['git', 'diff', '--cached', '--name-only'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        staged_files = result.stdout.strip().split('\n') if result.stdout.strip() else []
+        
+        # Get unstaged files
+        result = subprocess.run(
+            ['git', 'diff', '--name-only'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        unstaged_files = result.stdout.strip().split('\n') if result.stdout.strip() else []
+        
+        # Get untracked files
+        result = subprocess.run(
+            ['git', 'ls-files', '--others', '--exclude-standard'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        untracked_files = result.stdout.strip().split('\n') if result.stdout.strip() else []
+        
+        # Combine and deduplicate
+        all_files = list(set(staged_files + unstaged_files + untracked_files))
+        
+        # Filter out empty strings and convert to absolute paths
+        diff_files = []
+        for file_path in all_files:
+            if file_path and Path(file_path).exists():
+                diff_files.append(str(Path(file_path).resolve()))
+        
+        return diff_files
+        
+    except subprocess.CalledProcessError:
+        console.print("[yellow]Warning: Not in a git repository or git not available[/yellow]")
+        return []
+    except Exception as e:
+        console.print(f"[red]Error getting git diff: {e}[/red]")
+        return []
+
+
+def _display_scan_results_in_terminal(scan_result, console):
+    """Display scan results in terminal format."""
+    
+    # Show breakdown by agent
+    if scan_result.agent_results:
+        table = Table(title="Agent Results Summary")
+        table.add_column("Agent", style="cyan")
+        table.add_column("Status", style="green")
+        table.add_column("Issues", style="yellow")
+        table.add_column("Duration", style="blue")
+        
+        for agent_result in scan_result.agent_results:
+            status = "✅ Success" if agent_result.success else "❌ Failed"
+            table.add_row(
+                agent_result.agent_type.value,
+                status,
+                str(len(agent_result.issues)),
+                f"{agent_result.execution_time:.2f}s"
+            )
+        
+        console.print(table)
+    
+    # Show detailed issues by type
+    all_issues = []
+    all_issues.extend(scan_result.semgrep_results)
+    all_issues.extend(scan_result.trivy_results)
+    all_issues.extend(scan_result.ai_review_results)
+    
+    if all_issues:
+        console.print(f"\n[bold red]Issues Found ({len(all_issues)}):[/bold red]")
+        
+        # Group issues by severity
+        severity_groups = {}
+        for issue in all_issues:
+            severity = getattr(issue, 'severity', 'UNKNOWN')
+            if hasattr(severity, 'value'):
+                severity = severity.value
+            if severity not in severity_groups:
+                severity_groups[severity] = []
+            severity_groups[severity].append(issue)
+        
+        # Display issues by severity
+        severity_colors = {
+            'CRITICAL': 'bright_red',
+            'HIGH': 'red',
+            'MEDIUM': 'yellow',
+            'LOW': 'blue',
+            'INFO': 'green'
+        }
+        
+        for severity in ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO']:
+            if severity in severity_groups:
+                color = severity_colors.get(severity, 'white')
+                console.print(f"\n[bold {color}]{severity} ({len(severity_groups[severity])} issues):[/bold {color}]")
+                
+                for issue in severity_groups[severity][:10]:  # Limit to 10 issues per severity
+                    if hasattr(issue, 'title'):
+                        console.print(f"  • {issue.title}")
+                        if hasattr(issue, 'file_path'):
+                            console.print(f"    File: {issue.file_path}")
+                        if hasattr(issue, 'description') and len(issue.description) < 200:
+                            console.print(f"    {issue.description}")
+                    elif isinstance(issue, dict):
+                        # Handle raw results (like SemGrep/Trivy)
+                        title = issue.get('check_id', issue.get('RuleID', 'Unknown Issue'))
+                        console.print(f"  • {title}")
+                        if 'path' in issue:
+                            console.print(f"    File: {issue['path']}")
+                        elif 'Target' in issue:
+                            console.print(f"    File: {issue['Target']}")
+                
+                if len(severity_groups[severity]) > 10:
+                    console.print(f"    ... and {len(severity_groups[severity]) - 10} more {severity.lower()} issues")
 
 
 @click.group()
@@ -101,7 +226,7 @@ def info():
 @cli.command()
 @click.argument('paths', nargs=-1)
 @click.option('-a', '--agents', 
-              default='semgrep,trivy,ai_review',
+              default='semgrep,trivy',
               help='Comma-separated list of agents to run')
 @click.option('-t', '--timeout', 
               default=300, 
@@ -110,15 +235,41 @@ def info():
 @click.option('-o', '--output', 
               default='codetective_scan_results.json',
               help='Output JSON file')
-def scan(paths: tuple, agents: str, timeout: int, output: str):
+@click.option('--diff-only', 
+              is_flag=True,
+              help='Scan only new/modified files (git diff)')
+@click.option('--show-output', 
+              is_flag=True,
+              help='Show agent output in terminal instead of JSON file')
+@click.option('--parallel', 
+              is_flag=True,
+              help='Run agents in parallel for faster execution')
+@click.option('--force-ai', 
+              is_flag=True,
+              help='Force enable AI review even for >10 files')
+@click.option('--max-files', 
+              default=None,
+              type=int,
+              help='Maximum number of files to scan')
+def scan(paths: tuple, agents: str, timeout: int, output: str, diff_only: bool, 
+         show_output: bool, parallel: bool, force_ai: bool, max_files: int):
     """Execute multi-agent code scanning."""
     try:
-        # Use current directory if no paths provided
-        if not paths:
-            paths = ['.']
-        
-        # Validate paths
-        validated_paths = validate_paths(list(paths))
+        # Handle diff-only scanning
+        if diff_only:
+            console.print("[bold yellow]Scanning only git diff files...[/bold yellow]")
+            diff_files = get_git_diff_files()
+            if not diff_files:
+                console.print("[yellow]No modified files found in git diff[/yellow]")
+                return
+            validated_paths = diff_files
+            console.print(f"Found {len(diff_files)} modified files")
+        else:
+            # Use current directory if no paths provided
+            if not paths:
+                paths = ['.']
+            # Validate paths
+            validated_paths = validate_paths(list(paths))
         
         # Parse agents
         agent_list = []
@@ -134,41 +285,98 @@ def scan(paths: tuple, agents: str, timeout: int, output: str):
                 console.print(f"[red]Unknown agent: {agent_name}[/red]")
                 sys.exit(1)
         
+        # Smart AI review handling
+        if AgentType.AI_REVIEW in agent_list:
+            # Count files to scan
+            file_count = 0
+            for path in validated_paths:
+                if Path(path).is_file():
+                    file_count += 1
+                else:
+                    # Count files in directory
+                    for ext in ['.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.c', '.cpp', '.h', '.hpp', '.cs', '.php', '.rb', '.go', '.rs', '.swift', '.kt', '.scala', '.sh']:
+                        file_count += len(list(Path(path).rglob(f'*{ext}')))
+            
+            if file_count > 10 and not force_ai:
+                console.print(f"[yellow]Warning: {file_count} files detected. AI Review disabled for performance.[/yellow]")
+                console.print("[yellow]Use --force-ai to enable AI Review for large codebases.[/yellow]")
+                agent_list.remove(AgentType.AI_REVIEW)
+        
         # Create scan configuration
         scan_config = ScanConfig(
             agents=agent_list,
             timeout=timeout,
             paths=validated_paths,
-            output_file=output
+            output_file=output if not show_output else None,
+            max_files=max_files,
+            parallel_execution=parallel
         )
         
         console.print(f"[bold blue]Starting scan with agents: {', '.join([a.value for a in agent_list])}[/bold blue]")
-        console.print(f"Scanning paths: {', '.join(validated_paths)}")
+        if diff_only:
+            console.print(f"Scanning {len(validated_paths)} modified files")
+        else:
+            console.print(f"Scanning paths: {', '.join(validated_paths)}")
         
         # Initialize orchestrator
         config = get_config()
         orchestrator = CodeDetectiveOrchestrator(config)
         
-        # Run scan
+        # Set parallel execution flag if needed
+        if parallel:
+            orchestrator._parallel_execution = True
+        
+        # Count total files for progress tracking
+        total_files = 0
+        for path in validated_paths:
+            if Path(path).is_file():
+                total_files += 1
+            else:
+                # Count files in directory
+                for ext in ['.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.c', '.cpp', '.h', '.hpp', '.cs', '.php', '.rb', '.go', '.rs', '.swift', '.kt', '.scala', '.sh']:
+                    total_files += len(list(Path(path).rglob(f'*{ext}')))
+        
+        # Apply max_files limit
+        if max_files and total_files > max_files:
+            console.print(f"[yellow]Limiting scan to {max_files} files (found {total_files})[/yellow]")
+            total_files = max_files
+        
+        # Run scan with enhanced progress
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TextColumn("files"),
             console=console,
         ) as progress:
-            task = progress.add_task("Running scan...", total=None)
+            scan_task = progress.add_task(f"Scanning {total_files} files with {len(agent_list)} agents...", total=len(agent_list))
+            
             scan_result = orchestrator.run_scan(scan_config)
-            progress.update(task, completed=True)
+            
+            progress.update(scan_task, completed=len(agent_list))
         
-        # Save results
-        output_path = Path(output)
-        with open(output_path, 'w') as f:
-            json.dump(scan_result.model_dump(), f, indent=2, default=str)
-        
-        # Display summary
-        console.print(f"\n[bold green]✅ Scan completed![/bold green]")
-        console.print(f"Total issues found: {scan_result.total_issues}")
-        console.print(f"Scan duration: {scan_result.scan_duration:.2f} seconds")
-        console.print(f"Results saved to: {output_path.absolute()}")
+        # Handle output based on show_output flag
+        if show_output:
+            # Display results in terminal
+            console.print(f"\n[bold green]✅ Scan completed![/bold green]")
+            console.print(f"Total issues found: {scan_result.total_issues}")
+            console.print(f"Scan duration: {scan_result.scan_duration:.2f} seconds")
+            console.print(f"Files scanned: {total_files}")
+            
+            # Show detailed results by agent
+            _display_scan_results_in_terminal(scan_result, console)
+        else:
+            # Save results to JSON file
+            output_path = Path(output)
+            with open(output_path, 'w') as f:
+                json.dump(scan_result.model_dump(), f, indent=2, default=str)
+            
+            console.print(f"\n[bold green]✅ Scan completed![/bold green]")
+            console.print(f"Total issues found: {scan_result.total_issues}")
+            console.print(f"Scan duration: {scan_result.scan_duration:.2f} seconds")
+            console.print(f"Files scanned: {total_files}")
+            console.print(f"Results saved to: {output_path.absolute()}")
         
         # Show breakdown by agent
         if scan_result.agent_results:

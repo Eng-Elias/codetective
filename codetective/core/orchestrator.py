@@ -66,14 +66,33 @@ class CodeDetectiveOrchestrator:
         
         # Add nodes
         workflow.add_node("start_scan", self._start_scan)
-        workflow.add_node("run_agents", self._run_all_agents)
-        workflow.add_node("aggregate_results", self._aggregate_scan_results)
         
-        # Add edges - simplified to avoid parallel execution issues
-        workflow.set_entry_point("start_scan")
-        workflow.add_edge("start_scan", "run_agents")
-        workflow.add_edge("run_agents", "aggregate_results")
-        workflow.add_edge("aggregate_results", END)
+        # Check if parallel execution is enabled
+        if hasattr(self, '_parallel_execution') and self._parallel_execution:
+            # Add individual agent nodes for parallel execution
+            workflow.add_node("run_semgrep", self._run_semgrep_agent)
+            workflow.add_node("run_trivy", self._run_trivy_agent)
+            workflow.add_node("run_ai_review", self._run_ai_review_agent)
+            workflow.add_node("aggregate_results", self._aggregate_scan_results)
+            
+            # Set up parallel execution
+            workflow.set_entry_point("start_scan")
+            workflow.add_edge("start_scan", "run_semgrep")
+            workflow.add_edge("start_scan", "run_trivy")
+            workflow.add_edge("start_scan", "run_ai_review")
+            workflow.add_edge("run_semgrep", "aggregate_results")
+            workflow.add_edge("run_trivy", "aggregate_results")
+            workflow.add_edge("run_ai_review", "aggregate_results")
+            workflow.add_edge("aggregate_results", END)
+        else:
+            # Sequential execution (default)
+            workflow.add_node("run_agents", self._run_all_agents)
+            workflow.add_node("aggregate_results", self._aggregate_scan_results)
+            
+            workflow.set_entry_point("start_scan")
+            workflow.add_edge("start_scan", "run_agents")
+            workflow.add_edge("run_agents", "aggregate_results")
+            workflow.add_edge("aggregate_results", END)
         
         self.scan_graph = workflow.compile()
     
