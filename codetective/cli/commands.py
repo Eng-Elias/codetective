@@ -25,47 +25,63 @@ console = Console()
 def get_git_diff_files() -> List[str]:
     """Get list of new/modified files from git diff."""
     try:
-        # Get staged files
+        all_files = []
+        
+        # Get staged files (files added to index)
         result = subprocess.run(
             ['git', 'diff', '--cached', '--name-only'],
             capture_output=True,
             text=True,
-            check=True
+            cwd=Path.cwd()
         )
-        staged_files = result.stdout.strip().split('\n') if result.stdout.strip() else []
+        if result.returncode == 0 and result.stdout.strip():
+            staged_files = [f.strip() for f in result.stdout.strip().split('\n') if f.strip()]
+            all_files.extend(staged_files)
+            console.print(f"[blue]Found {len(staged_files)} staged files[/blue]")
         
-        # Get unstaged files
+        # Get unstaged files (modified but not staged)
         result = subprocess.run(
             ['git', 'diff', '--name-only'],
             capture_output=True,
             text=True,
-            check=True
+            cwd=Path.cwd()
         )
-        unstaged_files = result.stdout.strip().split('\n') if result.stdout.strip() else []
+        if result.returncode == 0 and result.stdout.strip():
+            unstaged_files = [f.strip() for f in result.stdout.strip().split('\n') if f.strip()]
+            all_files.extend(unstaged_files)
+            console.print(f"[blue]Found {len(unstaged_files)} unstaged files[/blue]")
         
-        # Get untracked files
+        # Get untracked files (new files not in git)
         result = subprocess.run(
             ['git', 'ls-files', '--others', '--exclude-standard'],
             capture_output=True,
             text=True,
-            check=True
+            cwd=Path.cwd()
         )
-        untracked_files = result.stdout.strip().split('\n') if result.stdout.strip() else []
+        if result.returncode == 0 and result.stdout.strip():
+            untracked_files = [f.strip() for f in result.stdout.strip().split('\n') if f.strip()]
+            all_files.extend(untracked_files)
+            console.print(f"[blue]Found {len(untracked_files)} untracked files[/blue]")
         
-        # Combine and deduplicate
-        all_files = list(set(staged_files + unstaged_files + untracked_files))
-        
-        # Filter out empty strings and convert to absolute paths
-        diff_files = []
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_files = []
         for file_path in all_files:
-            if file_path and Path(file_path).exists():
-                diff_files.append(str(Path(file_path).resolve()))
+            if file_path and file_path not in seen:
+                seen.add(file_path)
+                unique_files.append(file_path)
+        
+        # Convert to absolute paths and filter existing files
+        diff_files = []
+        for file_path in unique_files:
+            full_path = Path(file_path).resolve()
+            if full_path.exists():
+                diff_files.append(str(full_path))
+            else:
+                console.print(f"[yellow]Warning: File not found: {file_path}[/yellow]")
         
         return diff_files
         
-    except subprocess.CalledProcessError:
-        console.print("[yellow]Warning: Not in a git repository or git not available[/yellow]")
-        return []
     except Exception as e:
         console.print(f"[red]Error getting git diff: {e}[/red]")
         return []
