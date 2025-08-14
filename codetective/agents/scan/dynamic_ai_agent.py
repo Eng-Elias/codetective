@@ -156,7 +156,7 @@ class DynamicAIReviewAgent(ScanAgent):
         issues = []
         
         # Read file content
-        content = get_file_content(file_path, max_lines=200)  # Limit for better processing
+        content = get_file_content(file_path)  # Limit for better processing
         
         if not content or content.startswith("Error reading file"):
             return issues
@@ -166,39 +166,26 @@ class DynamicAIReviewAgent(ScanAgent):
         language = self._detect_language(file_extension)
         
         prompt = f"""
-You are an expert code security reviewer. Analyze the following {language} code file for security vulnerabilities, code quality issues, and best practice violations.
+Analyze this {language} code file for security issues and code quality problems.
 
 File: {file_path}
-Language: {language}
-
 Code:
 ```{file_extension[1:] if file_extension else 'text'}
 {content}
 ```
 
-Your task:
-1. Analyze the code for security vulnerabilities, performance issues, and code quality problems
-2. Use the search tools available to you to get current information about:
-   - Security best practices for this language
-   - Known vulnerabilities related to patterns you see in the code
-   - Documentation for any libraries or frameworks used
-3. Provide a detailed analysis with specific line numbers and actionable recommendations
+Provide a concise analysis in exactly this format (no thinking tags, no extra text):
 
-When you find issues, format your final response as a JSON array with this structure:
-[
-  {{
-    "title": "Brief issue title",
-    "description": "Detailed description with context from your research",
-    "severity": "low|medium|high|critical",
-    "line_number": line_number_if_applicable,
-    "suggestion": "Specific fix recommendation",
-    "references": "URLs or sources from your research"
-  }}
-]
+SECURITY ISSUES:
+- [Issue description with line number if applicable]
 
-If no issues are found, return an empty array: []
+CODE QUALITY:
+- [Quality issue description]
 
-Begin your analysis:
+RECOMMENDATIONS:
+- [Specific actionable fixes]
+
+Keep response under 500 words and focus on the most critical issues only.
 """
         
         try:
@@ -210,17 +197,18 @@ Begin your analysis:
                 
                 # Get the last message content as response
                 response = messages["messages"][-1].content
-                print(f"Agent response: {response[:200]}...")
             else:
                 # Fallback: Use direct LLM call with search context
                 search_context = self._get_search_context(file_path, content)
                 enhanced_prompt = f"{search_context}\n\n{prompt}"
                 
                 response = self.llm.invoke(enhanced_prompt).content
-                print(f"Fallback agent response: {response[:200]}...")
             
-            # Parse the response to extract JSON
-            ai_issues = self._parse_agent_response(response, file_path)
+            # Clean response by removing thinking tags and extra content
+            cleaned_response = self._clean_response(response)
+            
+            # Parse the response to create Issue objects
+            ai_issues = self._parse_agent_response(cleaned_response, file_path)
             issues.extend(ai_issues)
             
         except Exception as e:
@@ -255,62 +243,21 @@ Begin your analysis:
         return language_map.get(file_extension, 'Unknown')
     
     def _parse_agent_response(self, response: str, file_path: str) -> List[Issue]:
-        """Parse agent response into Issue objects."""
+        """Parse agent response into simplified Issue objects."""
         issues = []
         
-        try:
-            # Try to extract JSON from the response
-            json_start = response.find('[')
-            json_end = response.rfind(']') + 1
-            
-            if json_start != -1 and json_end > json_start:
-                json_str = response[json_start:json_end]
-                ai_issues = json.loads(json_str)
-                
-                for issue_data in ai_issues:
-                    if isinstance(issue_data, dict):
-                        # Map severity
-                        severity_map = {
-                            'low': SeverityLevel.LOW,
-                            'medium': SeverityLevel.MEDIUM,
-                            'high': SeverityLevel.HIGH,
-                            'critical': SeverityLevel.CRITICAL
-                        }
-                        
-                        severity = severity_map.get(
-                            issue_data.get('severity', 'medium').lower(),
-                            SeverityLevel.MEDIUM
-                        )
-                        
-                        issue = Issue(
-                            id=f"ai-review-{hash(str(issue_data))}",
-                            title=f"AI Review: {issue_data.get('title', 'Code Issue')}",
-                            description=issue_data.get('description', 'AI-detected code issue'),
-                            severity=severity,
-                            file_path=file_path,
-                            line_number=issue_data.get('line_number', 1),
-                            rule_id="ai-review",
-                            fix_suggestion=issue_data.get('suggestion'),
-                            status=IssueStatus.DETECTED
-                        )
-                        issues.append(issue)
-            
-        except (json.JSONDecodeError, KeyError, ValueError) as e:
-            print(f"Failed to parse AI response as JSON: {e}")
-            # If JSON parsing fails, create a general issue
-            if "issue" in response.lower() or "vulnerability" in response.lower():
-                issue = Issue(
-                    id=f"ai-review-general-{hash(response)}",
-                    title="AI Review: General Code Analysis",
-                    description=f"AI analysis result: {response[:500]}...",
-                    severity=SeverityLevel.MEDIUM,
-                    file_path=file_path,
-                    line_number=1,
-                    rule_id="ai-review-general",
-                    fix_suggestion="Review AI analysis for recommendations",
-                    status=IssueStatus.DETECTED
-                )
-                issues.append(issue)
+        # Generate a simple title from file path and agent name
+        file_name = Path(file_path).name
+        title = f"AI Review: {file_name}"
+        
+        # Create a single Issue object with the AI response as description
+        issue = Issue(
+            id=f"ai-review-{hash(file_path + response)}",
+            title=title,
+            description=response,
+            file_path=file_path
+        )
+        issues.append(issue)
         
         return issues
 
@@ -353,3 +300,22 @@ Use this context to inform your analysis of the code below.
 """
         except Exception as e:
             return f"Search context unavailable: {str(e)}"
+    
+    def _clean_response(self, response: str) -> str:
+        """Clean AI response by removing thinking tags and limiting length."""
+        if not response:
+            return "No analysis provided."
+        
+        # Remove thinking tags and content between them
+        import re
+        cleaned = re.sub(r'<thinking>.*?</thinking>', '', response, flags=re.DOTALL)
+        
+        # Remove extra whitespace and newlines
+        cleaned = re.sub(r'\n\s*\n', '\n\n', cleaned.strip())
+        
+        # Limit to approximately 1000 tokens (roughly 750 words)
+        words = cleaned.split()
+        if len(words) > 750:
+            cleaned = ' '.join(words[:750]) + '...'
+        
+        return cleaned if cleaned else "No significant issues found."

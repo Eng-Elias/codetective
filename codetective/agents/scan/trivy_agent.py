@@ -38,7 +38,7 @@ class TrivyAgent(ScanAgent):
                     "trivy",
                     "fs",
                     "--format", "json",
-                    "--security-checks", "vuln,secret,config",
+                    "--scanners", "vuln,misconfig,secret,license",
                     "--timeout", f"{self.config.agent_timeout}s",
                     scan_path
                 ]
