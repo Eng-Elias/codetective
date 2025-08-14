@@ -19,9 +19,6 @@ from codetective.core.orchestrator import CodeDetectiveOrchestrator
 from codetective.models.schemas import ScanConfig, AgentType
 
 
-OPENAI_API_KEY = "sk-abcdabcdabcdabcdabcdabcd"
-
-
 def create_sample_code():
     """Create sample code files for demonstration."""
     temp_dir = Path(tempfile.mkdtemp())
