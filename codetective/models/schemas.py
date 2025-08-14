@@ -19,6 +19,7 @@ class AgentType(str, Enum):
 
 class SeverityLevel(str, Enum):
     """Issue severity levels."""
+    INFO = "info"
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"

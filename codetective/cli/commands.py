@@ -16,7 +16,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskPr
 from ..core.config import get_config
 from ..core.utils import get_system_info, validate_paths
 from ..core.orchestrator import CodeDetectiveOrchestrator
-from ..models.schemas import AgentType, ScanConfig, FixConfig
+from ..models.schemas import AgentType, Issue, ScanConfig, FixConfig, SeverityLevel
 
 
 console = Console()
@@ -89,26 +89,6 @@ def get_git_diff_files() -> List[str]:
 
 def _display_scan_results_in_terminal(scan_result, console):
     """Display scan results in terminal format."""
-    
-    # Show breakdown by agent
-    if scan_result.agent_results:
-        table = Table(title="Agent Results Summary")
-        table.add_column("Agent", style="cyan")
-        table.add_column("Status", style="green")
-        table.add_column("Issues", style="yellow")
-        table.add_column("Duration", style="blue")
-        
-        for agent_result in scan_result.agent_results:
-            status = "✅ Success" if agent_result.success else "❌ Failed"
-            table.add_row(
-                agent_result.agent_type.value,
-                status,
-                str(len(agent_result.issues)),
-                f"{agent_result.execution_time:.2f}s"
-            )
-        
-        console.print(table)
-    
     # Show detailed issues by type
     all_issues = []
     all_issues.extend(scan_result.semgrep_results)
@@ -130,37 +110,30 @@ def _display_scan_results_in_terminal(scan_result, console):
         
         # Display issues by severity
         severity_colors = {
-            'CRITICAL': 'bright_red',
-            'HIGH': 'red',
-            'MEDIUM': 'yellow',
-            'LOW': 'blue',
-            'INFO': 'green'
+            SeverityLevel.CRITICAL.value: 'bright_red',
+            SeverityLevel.HIGH.value: 'red',
+            SeverityLevel.MEDIUM.value: 'yellow',
+            SeverityLevel.LOW.value: 'blue',
+            SeverityLevel.INFO.value: 'green'
         }
         
-        for severity in ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO']:
+        for severity in [SeverityLevel.CRITICAL.value, SeverityLevel.HIGH.value, SeverityLevel.MEDIUM.value, SeverityLevel.LOW.value, SeverityLevel.INFO.value]:
             if severity in severity_groups:
                 color = severity_colors.get(severity, 'white')
                 console.print(f"\n[bold {color}]{severity} ({len(severity_groups[severity])} issues):[/bold {color}]")
                 
-                for issue in severity_groups[severity][:10]:  # Limit to 10 issues per severity
-                    if hasattr(issue, 'title'):
-                        console.print(f"  • {issue.title}")
+                for issue in severity_groups[severity]:
+                    if isinstance(issue, Issue):
+                        if hasattr(issue, 'title'):
+                            console.print(f"  • {issue.title}")
                         if hasattr(issue, 'file_path'):
-                            console.print(f"    File: {issue.file_path}")
-                        if hasattr(issue, 'description') and len(issue.description) < 200:
+                            console.print(f"    File: {issue.file_path} {" : " + str(issue.line_number) if hasattr(issue, 'line_number') and issue.line_number else ''}")
+                        if hasattr(issue, 'rule_id'):
+                            console.print(f"    Rule ID: {issue.rule_id}")
+                        if hasattr(issue, 'description'):
                             console.print(f"    {issue.description}")
-                    elif isinstance(issue, dict):
-                        # Handle raw results (like SemGrep/Trivy)
-                        title = issue.get('check_id', issue.get('RuleID', 'Unknown Issue'))
-                        console.print(f"  • {title}")
-                        if 'path' in issue:
-                            console.print(f"    File: {issue['path']}")
-                        elif 'Target' in issue:
-                            console.print(f"    File: {issue['Target']}")
-                
-                if len(severity_groups[severity]) > 10:
-                    console.print(f"    ... and {len(severity_groups[severity]) - 10} more {severity.lower()} issues")
-
+                        if hasattr(issue, 'fix_suggestion'):
+                            console.print(f"    Fix suggestion: {issue.fix_suggestion}")
 
 @click.group()
 @click.version_option()
@@ -371,47 +344,41 @@ def scan(paths: tuple, agents: str, timeout: int, output: str, diff_only: bool,
             scan_result = orchestrator.run_scan(scan_config)
             
             progress.update(scan_task, completed=len(agent_list))
+
+        console.print(f"\n[bold green]✅ Scan completed![/bold green]")
+        console.print(f"Total issues found: {scan_result.total_issues}")
+        console.print(f"Scan duration: {scan_result.scan_duration:.2f} seconds")
+        console.print(f"Files scanned: {total_files}")
+
+        if scan_result.agent_results:
+                table = Table(title="Agent Results Summary")
+                table.add_column("Agent", style="cyan")
+                table.add_column("Status", style="green")
+                table.add_column("Issues", style="yellow")
+                table.add_column("Duration", style="blue")
+                
+                for agent_result in scan_result.agent_results:
+                    status = "✅ Success" if agent_result.success else "❌ Failed"
+                    table.add_row(
+                        agent_result.agent_type.value.title(),
+                        status,
+                        str(len(agent_result.issues)),
+                        f"{agent_result.execution_time:.2f}s"
+                    )
+                
+                console.print(table)
         
         # Handle output based on show_output flag
         if show_output:
-            # Display results in terminal
-            console.print(f"\n[bold green]✅ Scan completed![/bold green]")
-            console.print(f"Total issues found: {scan_result.total_issues}")
-            console.print(f"Scan duration: {scan_result.scan_duration:.2f} seconds")
-            console.print(f"Files scanned: {total_files}")
-            
-            # Show detailed results by agent
+            # Show detailed results by agent (includes agent summary table and issues)
             _display_scan_results_in_terminal(scan_result, console)
         else:
-            # Save results to JSON file
+            # Save results to JSON file and show basic summary
             output_path = Path(output)
             with open(output_path, 'w') as f:
                 json.dump(scan_result.model_dump(), f, indent=2, default=str)
-            
-            console.print(f"\n[bold green]✅ Scan completed![/bold green]")
-            console.print(f"Total issues found: {scan_result.total_issues}")
-            console.print(f"Scan duration: {scan_result.scan_duration:.2f} seconds")
-            console.print(f"Files scanned: {total_files}")
-            console.print(f"Results saved to: {output_path.absolute()}")
-        
-        # Show breakdown by agent
-        if scan_result.agent_results:
-            table = Table(title="Agent Results Summary")
-            table.add_column("Agent", style="cyan")
-            table.add_column("Status", style="green")
-            table.add_column("Issues", style="yellow")
-            table.add_column("Duration", style="blue")
-            
-            for agent_result in scan_result.agent_results:
-                status = "✅ Success" if agent_result.success else "❌ Failed"
-                table.add_row(
-                    agent_result.agent_type.value.title(),
-                    status,
-                    str(len(agent_result.issues)),
-                    f"{agent_result.execution_time:.2f}s"
-                )
-            
-            console.print(table)
+
+            console.print(f"Results saved to:\n{output_path.absolute()}")
     
     except Exception as e:
         console.print(f"[red]Error during scan: {e}[/red]")
