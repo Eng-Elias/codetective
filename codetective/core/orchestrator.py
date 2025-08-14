@@ -6,6 +6,7 @@ import time
 from typing import Dict, List, Any, Optional
 from typing_extensions import TypedDict
 from langgraph.graph import StateGraph, END
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from ..models.schemas import (
     ScanConfig, FixConfig, ScanResult, FixResult, AgentResult, 
@@ -75,11 +76,15 @@ class CodeDetectiveOrchestrator:
             workflow.add_node("run_ai_review", self._run_ai_review_agent)
             workflow.add_node("aggregate_results", self._aggregate_scan_results)
             
-            # Set up parallel execution
+            # Set up true parallel execution using conditional edges
             workflow.set_entry_point("start_scan")
+            
+            # Use simple parallel edges - LangGraph will handle parallelism
             workflow.add_edge("start_scan", "run_semgrep")
             workflow.add_edge("start_scan", "run_trivy")
             workflow.add_edge("start_scan", "run_ai_review")
+            
+            # All agents converge to aggregate results
             workflow.add_edge("run_semgrep", "aggregate_results")
             workflow.add_edge("run_trivy", "aggregate_results")
             workflow.add_edge("run_ai_review", "aggregate_results")
@@ -127,6 +132,135 @@ class CodeDetectiveOrchestrator:
         """Run the scan workflow."""
         start_time = time.time()
         
+        # Check if parallel execution is enabled
+        if getattr(scan_config, 'parallel_execution', False):
+            return self._run_scan_parallel(scan_config, start_time)
+        else:
+            return self._run_scan_sequential(scan_config, start_time)
+    
+    def _run_scan_parallel(self, scan_config: ScanConfig, start_time: float) -> ScanResult:
+        """Run agents in parallel using ThreadPoolExecutor."""
+        agent_results = []
+        semgrep_issues = []
+        trivy_issues = []
+        ai_review_issues = []
+        
+        # Define agent execution functions
+        def run_semgrep():
+            if AgentType.SEMGREP in scan_config.agents:
+                agent_start = time.time()
+                try:
+                    issues = self.semgrep_agent.scan_files(scan_config.paths)
+                    execution_time = time.time() - agent_start
+                    return AgentResult(
+                        agent_type=AgentType.SEMGREP,
+                        success=True,
+                        issues=issues,
+                        execution_time=execution_time
+                    ), issues
+                except Exception as e:
+                    execution_time = time.time() - agent_start
+                    return AgentResult(
+                        agent_type=AgentType.SEMGREP,
+                        success=False,
+                        issues=[],
+                        execution_time=execution_time,
+                        error_message=str(e)
+                    ), []
+            return None, []
+        
+        def run_trivy():
+            if AgentType.TRIVY in scan_config.agents:
+                agent_start = time.time()
+                try:
+                    issues = self.trivy_agent.scan_files(scan_config.paths)
+                    execution_time = time.time() - agent_start
+                    return AgentResult(
+                        agent_type=AgentType.TRIVY,
+                        success=True,
+                        issues=issues,
+                        execution_time=execution_time
+                    ), issues
+                except Exception as e:
+                    execution_time = time.time() - agent_start
+                    return AgentResult(
+                        agent_type=AgentType.TRIVY,
+                        success=False,
+                        issues=[],
+                        execution_time=execution_time,
+                        error_message=str(e)
+                    ), []
+            return None, []
+        
+        def run_ai_review():
+            if AgentType.AI_REVIEW in scan_config.agents:
+                agent_start = time.time()
+                try:
+                    issues = self.ai_review_agent.scan_files(scan_config.paths)
+                    execution_time = time.time() - agent_start
+                    return AgentResult(
+                        agent_type=AgentType.AI_REVIEW,
+                        success=True,
+                        issues=issues,
+                        execution_time=execution_time
+                    ), issues
+                except Exception as e:
+                    execution_time = time.time() - agent_start
+                    return AgentResult(
+                        agent_type=AgentType.AI_REVIEW,
+                        success=False,
+                        issues=[],
+                        execution_time=execution_time,
+                        error_message=str(e)
+                    ), []
+            return None, []
+        
+        # Execute agents in parallel
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            # Submit all agent tasks
+            futures = []
+            if AgentType.SEMGREP in scan_config.agents:
+                futures.append(executor.submit(run_semgrep))
+            if AgentType.TRIVY in scan_config.agents:
+                futures.append(executor.submit(run_trivy))
+            if AgentType.AI_REVIEW in scan_config.agents:
+                futures.append(executor.submit(run_ai_review))
+            
+            # Collect results as they complete
+            for future in as_completed(futures):
+                try:
+                    agent_result, issues = future.result()
+                    if agent_result:
+                        agent_results.append(agent_result)
+                        if agent_result.agent_type == AgentType.SEMGREP:
+                            semgrep_issues.extend(issues)
+                        elif agent_result.agent_type == AgentType.TRIVY:
+                            trivy_issues.extend(issues)
+                        elif agent_result.agent_type == AgentType.AI_REVIEW:
+                            ai_review_issues.extend(issues)
+                except Exception as e:
+                    print(f"Error in parallel agent execution: {e}")
+        
+        # Calculate total duration
+        total_duration = time.time() - start_time
+        total_issues = len(semgrep_issues) + len(trivy_issues) + len(ai_review_issues)
+        
+        # Create scan result
+        scan_result = ScanResult(
+            scan_path=", ".join(scan_config.paths),
+            config=scan_config,
+            semgrep_results=semgrep_issues,
+            trivy_results=trivy_issues,
+            ai_review_results=ai_review_issues,
+            agent_results=agent_results,
+            total_issues=total_issues,
+            scan_duration=total_duration
+        )
+        
+        return scan_result
+    
+    def _run_scan_sequential(self, scan_config: ScanConfig, start_time: float) -> ScanResult:
+        """Run agents sequentially using LangGraph."""
         initial_state = ScanState(
             config=scan_config,
             paths=scan_config.paths,
