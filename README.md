@@ -7,7 +7,7 @@ A comprehensive code analysis tool that combines multiple scanning engines (SemG
 - **Multi-Agent Scanning**: Combines SemGrep, Trivy, and AI-powered analysis
 - **Automated Fixing**: AI-powered code fixes and explanatory comments
 - **CLI Interface**: Command-line interface for automation and CI/CD integration
-- **Web GUI**: Streamlit-based web interface for interactive use
+- **Web GUI**: Modern web interface with both NiceGUI and Streamlit support
 - **LangGraph Orchestration**: Intelligent agent coordination and workflow management
 - **Configurable**: Flexible configuration via files and environment variables
 
@@ -78,10 +78,17 @@ codetective fix codetective_scan_results.json --agents comment
 ### 4. Launch Web GUI
 
 ```bash
+# Launch NiceGUI interface (default)
 codetective gui
+
+# Launch Streamlit interface
+codetective gui --gui-type streamlit
+
+# Custom host and port
+codetective gui --host 0.0.0.0 --port 7891
 ```
 
-Then open your browser to `http://localhost:8501`
+Then open your browser to `http://localhost:7891` (NiceGUI) or `http://localhost:8501` (Streamlit)
 
 ## CLI Commands
 
@@ -116,11 +123,12 @@ codetective fix scan_results.json --agents comment
 ```
 
 ### `codetective gui`
-Launch Streamlit web interface.
+Launch web interface.
 
 **Options:**
 - `--host`: Host to run on (default: localhost)
-- `--port`: Port to run on (default: 8501)
+- `--port`: Port to run on (default: 7891 for NiceGUI, 8501 for Streamlit)
+- `--gui-type`: GUI framework to use (nicegui or streamlit, default: nicegui)
 
 ## Configuration
 
@@ -149,6 +157,11 @@ backup_files: true
 # Output configuration
 output_format: "json"
 verbose: false
+
+# GUI configuration
+gui_host: "localhost"
+gui_port: 7891
+gui_type: "nicegui"
 ```
 
 ### Environment Variables
@@ -162,11 +175,22 @@ export CODETECTIVE_AI_REVIEW_ENABLED=true
 export CODETECTIVE_DEFAULT_TIMEOUT=300
 export CODETECTIVE_OLLAMA_BASE_URL="http://localhost:11434"
 export CODETECTIVE_OLLAMA_MODEL="codellama"
+export CODETECTIVE_GUI_HOST="localhost"
+export CODETECTIVE_GUI_PORT=7891
+export CODETECTIVE_GUI_TYPE="nicegui"
 ```
 
 ## Web GUI Usage
 
-The Streamlit GUI provides three main pages:
+Codetective offers two modern web interfaces:
+
+### NiceGUI Interface (Default)
+A modern, responsive web interface with better state management and real-time updates.
+
+### Streamlit Interface (Legacy)
+A data-focused interface with rich visualization capabilities.
+
+Both interfaces provide three main pages:
 
 ### 1. Project Selection
 - Enter or browse to your project path
@@ -306,4 +330,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Trivy](https://trivy.dev/) for security vulnerability scanning
 - [Ollama](https://ollama.ai/) for local AI model serving
 - [LangGraph](https://langchain-ai.github.io/langgraph/) for agent orchestration
-- [Streamlit](https://streamlit.io/) for the web interface
+- [NiceGUI](https://nicegui.io/) for the modern web interface
+- [Streamlit](https://streamlit.io/) for the legacy web interface

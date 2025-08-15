@@ -421,33 +421,51 @@ def fix(json_file: str, agents: str):
 
 @cli.command()
 @click.option('--host', default='localhost', help='Host to run GUI on')
-@click.option('--port', default=8501, type=int, help='Port to run GUI on')
-def gui(host: str, port: int):
-    """Launch Streamlit GUI."""
+@click.option('--port', default=7891, type=int, help='Port to run GUI on')
+@click.option('--gui-type', default='nicegui', type=click.Choice(['streamlit', 'nicegui']), help='GUI framework to use')
+def gui(host: str, port: int, gui_type: str):
+    """Launch GUI application."""
     try:
         import subprocess
         import sys
         from pathlib import Path
         
-        # Get the path to the streamlit app
-        gui_module = Path(__file__).parent.parent / "gui" / "streamlit_app.py"
-        
-        console.print(f"[bold blue]Starting Codetective GUI...[/bold blue]")
+        console.print(f"[bold blue]Starting Codetective GUI ({gui_type})...[/bold blue]")
         console.print(f"GUI will be available at: http://{host}:{port}")
         
-        # Launch streamlit
-        cmd = [
-            sys.executable, "-m", "streamlit", "run",
-            str(gui_module),
-            "--server.address", host,
-            "--server.port", str(port),
-            "--server.headless", "true"
-        ]
-        
-        subprocess.run(cmd)
+        if gui_type == 'streamlit':
+            # Get the path to the streamlit app
+            gui_module = Path(__file__).parent.parent / "gui" / "streamlit_app.py"
+            
+            # Launch streamlit
+            cmd = [
+                sys.executable, "-m", "streamlit", "run",
+                str(gui_module),
+                "--server.address", host,
+                "--server.port", str(port),
+                "--server.headless", "true"
+            ]
+            
+            subprocess.run(cmd)
+            
+        elif gui_type == 'nicegui':
+            # Get the path to the nicegui app
+            gui_module = Path(__file__).parent.parent / "gui" / "nicegui_app.py"
+            
+            # Set environment variables for NiceGUI
+            import os
+            os.environ['NICEGUI_HOST'] = host
+            os.environ['NICEGUI_PORT'] = str(port)
+            
+            # Launch nicegui
+            cmd = [sys.executable, str(gui_module)]
+            subprocess.run(cmd)
     
-    except ImportError:
-        console.print("[red]Streamlit not installed. Please install with: pip install streamlit[/red]")
+    except ImportError as e:
+        if gui_type == 'streamlit':
+            console.print("[red]Streamlit not installed. Please install with: pip install streamlit[/red]")
+        elif gui_type == 'nicegui':
+            console.print("[red]NiceGUI not installed. Please install with: pip install nicegui[/red]")
         sys.exit(1)
     except Exception as e:
         console.print(f"[red]Error launching GUI: {e}[/red]")

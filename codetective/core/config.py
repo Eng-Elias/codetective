@@ -34,8 +34,9 @@ class Config(BaseModel):
     verbose: bool = Field(default=False, description="Enable verbose output")
     
     # GUI configuration
-    gui_host: str = Field(default="localhost", description="Streamlit host")
-    gui_port: int = Field(default=8501, description="Streamlit port")
+    gui_host: str = Field(default="localhost", description="GUI host")
+    gui_port: int = Field(default=7891, description="GUI port")
+    gui_type: str = Field(default="nicegui", description="GUI framework (streamlit or nicegui)")
     
     @classmethod
     def load_from_file(cls, config_path: Optional[str] = None) -> "Config":
@@ -80,6 +81,7 @@ class Config(BaseModel):
             "CODETECTIVE_VERBOSE": "verbose",
             "CODETECTIVE_GUI_HOST": "gui_host",
             "CODETECTIVE_GUI_PORT": "gui_port",
+            "CODETECTIVE_GUI_TYPE": "gui_type",
         }
         
         for env_var, config_field in env_mapping.items():
