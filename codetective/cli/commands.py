@@ -14,9 +14,10 @@ from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 
 from ..core.config import get_config
-from ..core.utils import get_system_info, validate_paths
 from ..core.orchestrator import CodeDetectiveOrchestrator
-from ..models.schemas import AgentType, Issue, ScanConfig, FixConfig, SeverityLevel
+from ..core.utils import get_system_info, validate_paths, get_file_list
+from ..models.schemas import ScanConfig, FixConfig, AgentType, Issue, SeverityLevel
+from ..utils.git_utils import GitUtils
 
 
 console = Console()
@@ -275,23 +276,29 @@ def scan(paths: tuple, agents: str, timeout: int, output: str, diff_only: bool,
                 sys.exit(1)
         
         # Smart AI review handling
-        if AgentType.AI_REVIEW in agent_list:
-            # Count files to scan
+        if AgentType.AI_REVIEW in agent_list and not diff_only:
+            # Count files to scan using git-aware method
             file_count = 0
             for path in validated_paths:
                 if Path(path).is_file():
                     file_count += 1
                 else:
-                    # Count files in directory
-                    for ext in ['.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.c', '.cpp', '.h', '.hpp', '.cs', '.php', '.rb', '.go', '.rs', '.swift', '.kt', '.scala', '.sh']:
-                        file_count += len(list(Path(path).rglob(f'*{ext}')))
+                    # Check if it's a git repo and use git-tracked files
+                    if GitUtils.is_git_repo(path):
+                        file_count += GitUtils.get_file_count(path)
+                    else:
+                        # Fall back to gitignore-aware method for non-git directories
+                        files = get_file_list([path], 
+                                            include_patterns=['*.py', '*.js', '*.ts', '*.jsx', '*.tsx', '*.java', '*.c', '*.cpp', '*.h', '*.hpp', '*.cs', '*.php', '*.rb', '*.go', '*.rs', '*.swift', '*.kt', '*.scala', '*.sh'],
+                                            respect_gitignore=True)
+                        file_count += len(files)
             
             if file_count > 10 and not force_ai:
                 console.print(f"[yellow]Warning: {file_count} files detected. AI Review disabled for performance.[/yellow]")
                 console.print("[yellow]Use --force-ai to enable AI Review for large codebases.[/yellow]")
                 agent_list.remove(AgentType.AI_REVIEW)
-        
-        # Create scan configuration
+
+        # Update scan configuration with final paths
         scan_config = ScanConfig(
             agents=agent_list,
             timeout=timeout,
@@ -315,15 +322,39 @@ def scan(paths: tuple, agents: str, timeout: int, output: str, diff_only: bool,
         if parallel:
             orchestrator._parallel_execution = True
         
-        # Count total files for progress tracking
+        # Count total files for progress tracking (git-aware)
         total_files = 0
+        git_repos = []
         for path in validated_paths:
             if Path(path).is_file():
                 total_files += 1
             else:
-                # Count files in directory
-                for ext in ['.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.c', '.cpp', '.h', '.hpp', '.cs', '.php', '.rb', '.go', '.rs', '.swift', '.kt', '.scala', '.sh']:
-                    total_files += len(list(Path(path).rglob(f'*{ext}')))
+                # Check if it's a git repo
+                if GitUtils.is_git_repo(path):
+                    git_repos.append(path)
+                    total_files += GitUtils.get_file_count(path)
+                    console.print(f"[blue]Git repository detected: {path}[/blue]")
+                    console.print(f"[blue]Scanning git-tracked files only[/blue]")
+                else:
+                    # Fall back to gitignore-aware method for non-git directories
+                    files = get_file_list([path], respect_gitignore=True)
+                    total_files += len(files)
+        
+        # Update scan config to use git-tracked files for git repos
+        if git_repos:
+            git_files = []
+            non_git_paths = []
+            for path in validated_paths:
+                if Path(path).is_file():
+                    git_files.append(path)
+                elif GitUtils.is_git_repo(path):
+                    git_files.extend(GitUtils.get_code_files(path))
+                else:
+                    non_git_paths.append(path)
+            
+            # Update validated_paths to include git files and non-git paths
+            if git_files:
+                validated_paths = git_files + non_git_paths
         
         # Apply max_files limit
         if max_files and total_files > max_files:
