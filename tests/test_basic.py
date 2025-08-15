@@ -8,7 +8,7 @@ import tempfile
 import os
 
 from codetective.core.config import Config
-from codetective.core.utils import get_system_info, validate_paths
+from codetective.utils import SystemUtils, FileUtils
 from codetective.models.schemas import ScanConfig, AgentType, Issue, SeverityLevel
 
 
@@ -43,7 +43,7 @@ class TestUtils:
     
     def test_get_system_info(self):
         """Test system information retrieval."""
-        system_info = get_system_info()
+        system_info = SystemUtils.get_system_info()
         assert system_info.python_version is not None
         assert system_info.codetective_version == "0.1.0"
     
@@ -53,7 +53,7 @@ class TestUtils:
             test_file = Path(temp_dir) / "test.py"
             test_file.write_text("print('hello')")
             
-            validated = validate_paths([str(test_file), temp_dir])
+            validated = FileUtils.validate_paths([str(test_file), temp_dir])
             assert len(validated) == 2
             assert str(test_file.resolve()) in validated
             assert str(Path(temp_dir).resolve()) in validated
@@ -61,7 +61,7 @@ class TestUtils:
     def test_validate_paths_invalid(self):
         """Test path validation with invalid paths."""
         with pytest.raises(FileNotFoundError):
-            validate_paths(["/nonexistent/path"])
+            FileUtils.validate_paths(["/nonexistent/path"])
 
 
 class TestSchemas:

@@ -5,8 +5,7 @@ Git utilities for Codetective - handle git repository operations.
 import os
 import subprocess
 from pathlib import Path
-from typing import List, Optional, Tuple, Set
-import fnmatch
+from typing import List, Optional
 
 
 class GitUtils:
@@ -92,7 +91,21 @@ class GitUtils:
             cwd = repo_path or os.getcwd()
             all_files = []
             
-            # Get staged files (git diff --cached --name-only)
+            # Collect files from different git states
+            all_files.extend(GitUtils._get_staged_files(cwd))
+            all_files.extend(GitUtils._get_unstaged_files(cwd))
+            all_files.extend(GitUtils._get_untracked_files(cwd))
+            
+            # Convert to absolute paths
+            return GitUtils._convert_to_absolute_paths(all_files, cwd)
+        
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError, OSError):
+            return []
+
+    @staticmethod
+    def _get_staged_files(cwd: str) -> List[str]:
+        """Get staged files from git diff --cached."""
+        try:
             result = subprocess.run(
                 ["git", "diff", "--cached", "--name-only"],
                 cwd=cwd,
@@ -102,10 +115,15 @@ class GitUtils:
             )
             
             if result.returncode == 0:
-                staged_files = [f.strip() for f in result.stdout.split('\n') if f.strip()]
-                all_files.extend(staged_files)
-            
-            # Get unstaged files (git diff --name-only)
+                return [f.strip() for f in result.stdout.split('\n') if f.strip()]
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+            pass
+        return []
+
+    @staticmethod
+    def _get_unstaged_files(cwd: str) -> List[str]:
+        """Get unstaged files from git diff."""
+        try:
             result = subprocess.run(
                 ["git", "diff", "--name-only"],
                 cwd=cwd,
@@ -115,10 +133,15 @@ class GitUtils:
             )
             
             if result.returncode == 0:
-                unstaged_files = [f.strip() for f in result.stdout.split('\n') if f.strip()]
-                all_files.extend(unstaged_files)
-            
-            # Get untracked files (git ls-files --others --exclude-standard)
+                return [f.strip() for f in result.stdout.split('\n') if f.strip()]
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+            pass
+        return []
+
+    @staticmethod
+    def _get_untracked_files(cwd: str) -> List[str]:
+        """Get untracked files from git ls-files."""
+        try:
             result = subprocess.run(
                 ["git", "ls-files", "--others", "--exclude-standard"],
                 cwd=cwd,
@@ -128,24 +151,25 @@ class GitUtils:
             )
             
             if result.returncode == 0:
-                untracked_files = [f.strip() for f in result.stdout.split('\n') if f.strip()]
-                all_files.extend(untracked_files)
-            
-            # Convert to absolute paths and filter existing files
-            git_root = GitUtils.get_git_root(cwd)
-            if not git_root:
-                return []
-            
-            absolute_files = []
-            for file_path in set(all_files):  # Remove duplicates
-                abs_path = Path(git_root) / file_path
-                if abs_path.exists() and abs_path.is_file():
-                    absolute_files.append(str(abs_path))
-            
-            return absolute_files
-        
-        except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError, OSError):
+                return [f.strip() for f in result.stdout.split('\n') if f.strip()]
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+            pass
+        return []
+
+    @staticmethod
+    def _convert_to_absolute_paths(files: List[str], cwd: str) -> List[str]:
+        """Convert relative file paths to absolute paths and filter existing files."""
+        git_root = GitUtils.get_git_root(cwd)
+        if not git_root:
             return []
+        
+        absolute_files = []
+        for file_path in set(files):  # Remove duplicates
+            abs_path = Path(git_root) / file_path
+            if abs_path.exists() and abs_path.is_file():
+                absolute_files.append(str(abs_path))
+        
+        return absolute_files
     
     @staticmethod
     def get_code_files(repo_path: str) -> List[str]:

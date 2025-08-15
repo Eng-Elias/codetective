@@ -5,7 +5,7 @@ Process utilities for Codetective - handle command execution and process managem
 import os
 import signal
 import subprocess
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 
 
 class ProcessUtils:

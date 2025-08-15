@@ -5,7 +5,7 @@ Configuration management for Codetective.
 import os
 import yaml
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Optional
 from pydantic import BaseModel, Field
 
 

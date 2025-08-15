@@ -3,13 +3,14 @@ Comment agent for generating explanatory comments using AI.
 """
 
 import requests
-from typing import List, Dict, Any, Optional
+from typing import List
 from pathlib import Path
 
 from codetective.models.schemas import AgentType, Issue, IssueStatus
-from codetective.core.utils import check_tool_availability, get_file_content
+from codetective.utils import SystemUtils
 from codetective.core.search import create_search_tool
 from codetective.agents.base import OutputAgent
+from codetective.utils.system_utils import RequiredTools
 
 
 class CommentAgent(OutputAgent):
@@ -24,7 +25,7 @@ class CommentAgent(OutputAgent):
     
     def is_available(self) -> bool:
         """Check if Ollama is available for comment generation."""
-        available, _ = check_tool_availability("ollama")
+        available, _ = SystemUtils.check_tool_availability(RequiredTools.OLLAMA)
         return available
     
     def process_issues(self, issues: List[Issue], **kwargs) -> List[Issue]:

@@ -3,13 +3,13 @@ Trivy agent for security vulnerability scanning.
 """
 
 import json
-import subprocess
 from typing import List
 from pathlib import Path
 
-from ...models.schemas import AgentType, Issue, SeverityLevel, IssueStatus
-from ...core.utils import run_command, check_tool_availability
-from ..base import ScanAgent
+from codetective.models.schemas import AgentType, Issue, SeverityLevel, IssueStatus
+from codetective.utils import ProcessUtils, SystemUtils
+from codetective.agents.base import ScanAgent
+from codetective.utils.system_utils import RequiredTools
 
 
 class TrivyAgent(ScanAgent):
@@ -21,7 +21,7 @@ class TrivyAgent(ScanAgent):
     
     def is_available(self) -> bool:
         """Check if Trivy is available."""
-        available, _ = check_tool_availability("trivy")
+        available, _ = SystemUtils.check_tool_availability(RequiredTools.TRIVY)
         return available
     
     def scan_files(self, files: List[str]) -> List[Issue]:
@@ -43,7 +43,7 @@ class TrivyAgent(ScanAgent):
                     scan_path
                 ]
                 
-                success, stdout, stderr = run_command(cmd, timeout=self.config.agent_timeout)
+                success, stdout, stderr = ProcessUtils.run_command(cmd, timeout=self.config.agent_timeout)
                 
                 if not success:
                     # Trivy might still produce useful output even with non-zero exit

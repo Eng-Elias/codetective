@@ -3,13 +3,13 @@ SemGrep agent for static code analysis.
 """
 
 import json
-import subprocess
 from typing import List
 from pathlib import Path
 
-from ...models.schemas import AgentType, Issue, SeverityLevel, IssueStatus
-from ...core.utils import run_command, check_tool_availability
-from ..base import ScanAgent
+from codetective.models.schemas import AgentType, Issue, SeverityLevel, IssueStatus
+from codetective.utils import ProcessUtils, SystemUtils
+from codetective.agents.base import ScanAgent
+from codetective.utils.system_utils import RequiredTools
 
 
 class SemGrepAgent(ScanAgent):
@@ -21,7 +21,7 @@ class SemGrepAgent(ScanAgent):
     
     def is_available(self) -> bool:
         """Check if SemGrep is available."""
-        available, _ = check_tool_availability("semgrep")
+        available, _ = SystemUtils.check_tool_availability(RequiredTools.SEMGREP)
         return available
     
     def scan_files(self, files: List[str]) -> List[Issue]:
@@ -82,7 +82,7 @@ class SemGrepAgent(ScanAgent):
             ]
             
             timeout = min(self.config.agent_timeout, 90)
-            success, stdout, stderr = run_command(cmd, timeout=timeout)
+            success, stdout, stderr = ProcessUtils.run_command(cmd, timeout=timeout)
             
             if not success:
                 print(f"SemGrep failed for {file_path}: {stderr}")
@@ -113,7 +113,7 @@ class SemGrepAgent(ScanAgent):
             cmd.extend(file_paths)
             
             timeout = min(self.config.agent_timeout, 90)
-            success, stdout, stderr = run_command(cmd, timeout=timeout)
+            success, stdout, stderr = ProcessUtils.run_command(cmd, timeout=timeout)
             
             if not success:
                 print(f"SemGrep batch scan failed: {stderr}")
@@ -144,7 +144,7 @@ class SemGrepAgent(ScanAgent):
             
             # Use shorter timeout and set working directory
             timeout = min(self.config.agent_timeout, 90)  # Max 90 seconds
-            success, stdout, stderr = run_command(cmd, timeout=timeout)
+            success, stdout, stderr = ProcessUtils.run_command(cmd, timeout=timeout)
 
             if not success:
                 raise Exception(f"SemGrep execution failed: {stderr}")

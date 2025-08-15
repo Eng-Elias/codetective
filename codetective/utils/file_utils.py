@@ -2,11 +2,10 @@
 File utilities for Codetective - handle file operations and path validation.
 """
 
-import os
 import shutil
 import fnmatch
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 
 class FileUtils:
@@ -102,36 +101,58 @@ class FileUtils:
             if path.is_file():
                 files.append(str(path))
             elif path.is_dir():
-                # Load .gitignore patterns if respecting git
-                gitignore_patterns = []
-                project_root = path
-                if respect_gitignore:
-                    gitignore_patterns = FileUtils.load_gitignore_patterns(str(path))
-                
-                for file_path in path.rglob("*"):
-                    if file_path.is_file():
-                        # Check if ignored by git
-                        if respect_gitignore and gitignore_patterns:
-                            if FileUtils.is_ignored_by_git(file_path, project_root, gitignore_patterns):
-                                continue
-                        
-                        # Check file size
-                        if max_size and file_path.stat().st_size > max_size:
-                            continue
-                        
-                        # Check include patterns
-                        if not any(fnmatch.fnmatch(file_path.name, pattern) 
-                                  for pattern in include_patterns):
-                            continue
-                        
-                        # Check exclude patterns
-                        if any(fnmatch.fnmatch(str(file_path), pattern) 
-                              for pattern in exclude_patterns):
-                            continue
-                        
-                        files.append(str(file_path))
+                dir_files = FileUtils._scan_directory(
+                    path, include_patterns, exclude_patterns, max_size, respect_gitignore
+                )
+                files.extend(dir_files)
         
         return files
+
+    @staticmethod
+    def _scan_directory(directory: Path, include_patterns: List[str], 
+                       exclude_patterns: List[str], max_size: int = None,
+                       respect_gitignore: bool = True) -> List[str]:
+        """Scan a directory for files matching the given criteria."""
+        files = []
+        gitignore_patterns = []
+        
+        if respect_gitignore:
+            gitignore_patterns = FileUtils.load_gitignore_patterns(str(directory))
+        
+        for file_path in directory.rglob("*"):
+            if file_path.is_file():
+                if FileUtils._should_include_file(
+                    file_path, directory, gitignore_patterns, 
+                    include_patterns, exclude_patterns, max_size, respect_gitignore
+                ):
+                    files.append(str(file_path))
+        
+        return files
+
+    @staticmethod
+    def _should_include_file(file_path: Path, project_root: Path, 
+                           gitignore_patterns: List[str], include_patterns: List[str],
+                           exclude_patterns: List[str], max_size: int = None,
+                           respect_gitignore: bool = True) -> bool:
+        """Check if a file should be included based on all criteria."""
+        # Check if ignored by git
+        if respect_gitignore and gitignore_patterns:
+            if FileUtils.is_ignored_by_git(file_path, project_root, gitignore_patterns):
+                return False
+        
+        # Check file size
+        if max_size and file_path.stat().st_size > max_size:
+            return False
+        
+        # Check include patterns
+        if not any(fnmatch.fnmatch(file_path.name, pattern) for pattern in include_patterns):
+            return False
+        
+        # Check exclude patterns
+        if any(fnmatch.fnmatch(str(file_path), pattern) for pattern in exclude_patterns):
+            return False
+        
+        return True
 
     @staticmethod
     def create_backup(file_path: str) -> str:

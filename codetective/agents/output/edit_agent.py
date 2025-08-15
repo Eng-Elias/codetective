@@ -4,13 +4,14 @@ Edit agent for automatically applying code fixes using AI.
 
 import requests
 import shutil
-from typing import List, Dict, Any, Optional
+from typing import List, Dict
 from pathlib import Path
 
 from codetective.models.schemas import AgentType, Issue, IssueStatus
-from codetective.core.utils import check_tool_availability, get_file_content, create_backup
+from codetective.utils import SystemUtils, FileUtils
 from codetective.core.search import create_search_tool
 from codetective.agents.base import OutputAgent
+from codetective.utils.system_utils import RequiredTools
 
 
 class EditAgent(OutputAgent):
@@ -26,7 +27,7 @@ class EditAgent(OutputAgent):
     
     def is_available(self) -> bool:
         """Check if Ollama is available for edit generation."""
-        available, _ = check_tool_availability("ollama")
+        available, _ = SystemUtils.check_tool_availability(RequiredTools.OLLAMA)
         return available
     
     def process_issues(self, issues: List[Issue], **kwargs) -> List[Issue]:
@@ -76,10 +77,10 @@ class EditAgent(OutputAgent):
         try:
             # Create backup if enabled
             if self.backup_files:
-                create_backup(file_path)
+                FileUtils.create_backup(file_path)
             
             # Read original file content
-            original_content = get_file_content(file_path)
+            original_content = FileUtils.get_file_content(file_path)
             if original_content.startswith("Error reading file"):
                 return [self._mark_issue_failed(issue, "Cannot read file") for issue in issues]
             

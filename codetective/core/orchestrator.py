@@ -3,7 +3,7 @@ LangGraph orchestrator for coordinating Codetective agents.
 """
 
 import time
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 from typing_extensions import TypedDict
 from langgraph.graph import StateGraph, END
 from concurrent.futures import ThreadPoolExecutor, as_completed

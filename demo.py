@@ -14,7 +14,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from codetective.core.config import get_config
-from codetective.core.utils import get_system_info
+from codetective.utils import SystemUtils
 from codetective.core.orchestrator import CodeDetectiveOrchestrator
 from codetective.models.schemas import ScanConfig, AgentType
 
@@ -85,7 +85,7 @@ def demo_system_info():
     print("🔍 Codetective Demo - System Information")
     print("=" * 50)
     
-    system_info = get_system_info()
+    system_info = SystemUtils.get_system_info()
     
     print(f"Python Version: {system_info.python_version}")
     print(f"Codetective Version: {system_info.codetective_version}")
@@ -110,7 +110,7 @@ def demo_scan(project_path):
     
     # Configure scan
     available_agents = []
-    system_info = get_system_info()
+    system_info = SystemUtils.get_system_info()
     
     if system_info.semgrep_available:
         available_agents.append(AgentType.SEMGREP)

@@ -3,20 +3,19 @@ Streamlit GUI for Codetective - Multi-Agent Code Review Tool.
 """
 
 import streamlit as st
-import json
 import os
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict
 import time
 from streamlit_tree_select import tree_select
 
 try:
     # Try relative imports first (when run as module)
-    from ..core.config import get_config
-    from ..core.orchestrator import CodeDetectiveOrchestrator
-    from ..core.utils import get_system_info, validate_paths, get_file_list, load_gitignore_patterns, is_ignored_by_git
-    from ..models.schemas import ScanConfig, FixConfig, AgentType, Issue
-    from ..cli.commands import get_git_diff_files
+    from codetective.core.config import get_config
+    from codetective.core.orchestrator import CodeDetectiveOrchestrator
+    from codetective.utils import SystemUtils, FileUtils, GitUtils
+    from codetective.models.schemas import ScanConfig, FixConfig, AgentType, Issue
+    from codetective.cli.commands import get_git_diff_files
 except ImportError:
     # Fall back to absolute imports (when run as script)
     import sys
@@ -29,7 +28,7 @@ except ImportError:
     
     from codetective.core.config import get_config
     from codetective.core.orchestrator import CodeDetectiveOrchestrator
-    from codetective.core.utils import get_system_info, validate_paths, get_file_list, load_gitignore_patterns, is_ignored_by_git
+    from codetective.utils import SystemUtils, FileUtils, GitUtils
     from codetective.models.schemas import ScanConfig, FixConfig, AgentType, Issue
     from codetective.cli.commands import get_git_diff_files
     from codetective.utils.git_utils import GitUtils
@@ -82,7 +81,7 @@ def main():
         # System status
         st.subheader("System Status")
         with st.spinner("Checking system..."):
-            system_info = get_system_info()
+            system_info = SystemUtils.get_system_info()
         
         st.write("**Tool Availability:**")
         st.write(f"✅ SemGrep" if system_info.semgrep_available else "❌ SemGrep")
@@ -275,7 +274,7 @@ def show_file_tree_selector(project_path: str) -> List[str]:
                 
                 # Get all files from selected directories (respecting .gitignore)
                 for dir_path in selected_dirs:
-                    dir_files = get_file_list([dir_path], 
+                    dir_files = FileUtils.get_file_list([dir_path], 
                                             include_patterns=['*.py', '*.js', '*.ts', '*.jsx', '*.tsx', '*.java', '*.c', '*.cpp', '*.h', '*.hpp', '*.cs', '*.php', '*.rb', '*.go', '*.rs', '*.swift', '*.kt', '*.scala', '*.sh', '*.yaml', '*.yml', '*.json', '*.xml', '*.html', '*.css', '*.scss', '*.less', '*.md', '*.txt'],
                                             respect_gitignore=True)
                     selected_files.extend(dir_files)
@@ -392,7 +391,7 @@ def build_tree_nodes(path: Path, max_depth: int = 3, current_depth: int = 0, pro
         project_root = path
     
     # Load .gitignore patterns for filtering
-    gitignore_patterns = load_gitignore_patterns(str(project_root))
+    gitignore_patterns = FileUtils.load_gitignore_patterns(str(project_root))
     
     try:
         # Get directories and files separately
@@ -401,8 +400,8 @@ def build_tree_nodes(path: Path, max_depth: int = 3, current_depth: int = 0, pro
         files = [item for item in items if item.is_file() and not item.name.startswith('.')]
         
         # Filter out ignored directories and files
-        dirs = [d for d in dirs if not is_ignored_by_git(d, project_root, gitignore_patterns)]
-        files = [f for f in files if not is_ignored_by_git(f, project_root, gitignore_patterns)]
+        dirs = [d for d in dirs if not FileUtils.is_ignored_by_git(d, project_root, gitignore_patterns)]
+        files = [f for f in files if not FileUtils.is_ignored_by_git(f, project_root, gitignore_patterns)]
         
         # Add directories first
         for dir_path in sorted(dirs):
@@ -438,7 +437,7 @@ def build_tree_nodes(path: Path, max_depth: int = 3, current_depth: int = 0, pro
 def count_files_in_path(project_path: str) -> int:
     """Count the number of scannable files in a project path (respecting .gitignore)."""
     try:
-        files = get_file_list([project_path], 
+        files = FileUtils.get_file_list([project_path], 
                             include_patterns=['*.py', '*.js', '*.ts', '*.jsx', '*.tsx', '*.java', '*.c', '*.cpp', '*.h', '*.hpp', '*.cs', '.php', '*.rb', '*.go', '*.rs', '*.swift', '*.kt', '*.scala', '*.sh'],
                             respect_gitignore=True)
         return len(files)

@@ -4,13 +4,14 @@ AI Review agent using Ollama for intelligent code analysis.
 
 import json
 import requests
-from typing import List, Dict, Any, Optional
+from typing import List
 from pathlib import Path
 
 from codetective.models.schemas import AgentType, Issue, SeverityLevel
-from codetective.core.utils import check_tool_availability, get_file_content
+from codetective.utils import SystemUtils, FileUtils
 from codetective.core.search import create_search_tool
 from codetective.agents.base import ScanAgent
+from codetective.utils.system_utils import RequiredTools
 
 
 class AIReviewAgent(ScanAgent):
@@ -25,7 +26,7 @@ class AIReviewAgent(ScanAgent):
     
     def is_available(self) -> bool:
         """Check if Ollama is available."""
-        available, _ = check_tool_availability("ollama")
+        available, _ = SystemUtils.check_tool_availability(RequiredTools.OLLAMA)
         return available
     
     def scan_files(self, files: List[str]) -> List[Issue]:
@@ -60,7 +61,7 @@ class AIReviewAgent(ScanAgent):
         issues = []
         
         # Read file content
-        content = get_file_content(file_path, max_lines=500)  # Limit content size
+        content = FileUtils.get_file_content(file_path, max_lines=500)  # Limit content size
         
         if not content or content.startswith("Error reading file"):
             return issues

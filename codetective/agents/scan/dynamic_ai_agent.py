@@ -4,19 +4,17 @@ Dynamic AI Review agent using LangChain with autonomous tool use.
 
 import json
 import requests
-from typing import List, Dict, Any, Optional
+from typing import List
 from pathlib import Path
 from langchain.tools import Tool
 from langchain_ollama import ChatOllama
 from langgraph.prebuilt import create_react_agent
 
-from ...models.schemas import AgentType, Issue, SeverityLevel, IssueStatus
-from ...core.utils import check_tool_availability, get_file_content
-from ...core.search import SearchTool
-from ..base import ScanAgent
-
-
-
+from codetective.models.schemas import AgentType, Issue
+from codetective.utils import SystemUtils, FileUtils
+from codetective.core.search import SearchTool
+from codetective.agents.base import ScanAgent
+from codetective.utils.system_utils import RequiredTools
 
 
 class DynamicAIReviewAgent(ScanAgent):
@@ -48,7 +46,7 @@ class DynamicAIReviewAgent(ScanAgent):
     
     def is_available(self) -> bool:
         """Check if Ollama is available."""
-        available, _ = check_tool_availability("ollama")
+        available, _ = SystemUtils.check_tool_availability(RequiredTools.OLLAMA)
         return available
     
     def _create_agent(self):
@@ -156,7 +154,7 @@ class DynamicAIReviewAgent(ScanAgent):
         issues = []
         
         # Read file content
-        content = get_file_content(file_path)  # Limit for better processing
+        content = FileUtils.get_file_content(file_path)  # Limit for better processing
         
         if not content or content.startswith("Error reading file"):
             return issues

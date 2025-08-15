@@ -4,9 +4,8 @@ CLI commands implementation for Codetective.
 
 import json
 import sys
-import subprocess
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 import click
 from rich.console import Console
@@ -15,7 +14,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskPr
 
 from codetective.core.config import get_config
 from codetective.core.orchestrator import CodeDetectiveOrchestrator
-from codetective.core.utils import get_system_info, validate_paths, get_file_list
+from codetective.utils import SystemUtils, FileUtils
 from codetective.models.schemas import ScanConfig, FixConfig, AgentType, Issue, SeverityLevel
 from codetective.utils import GitUtils
 
@@ -94,7 +93,7 @@ def info():
         console=console,
     ) as progress:
         task = progress.add_task("Checking system compatibility...", total=None)
-        system_info = get_system_info()
+        system_info = SystemUtils.get_system_info()
         progress.update(task, completed=True)
     
     # Create system info table
@@ -199,7 +198,7 @@ def scan(paths: tuple, agents: str, timeout: int, output: str, diff_only: bool,
             if not paths:
                 paths = ['.']
             # Validate paths
-            validated_paths = validate_paths(list(paths))
+            validated_paths = FileUtils.validate_paths(list(paths))
         
         # Parse agents
         agent_list = []
@@ -228,7 +227,7 @@ def scan(paths: tuple, agents: str, timeout: int, output: str, diff_only: bool,
                         file_count += GitUtils.get_file_count(path)
                     else:
                         # Fall back to gitignore-aware method for non-git directories
-                        files = get_file_list([path], 
+                        files = FileUtils.get_file_list([path], 
                                             include_patterns=['*.py', '*.js', '*.ts', '*.jsx', '*.tsx', '*.java', '*.c', '*.cpp', '*.h', '*.hpp', '*.cs', '*.php', '*.rb', '*.go', '*.rs', '*.swift', '*.kt', '*.scala', '*.sh'],
                                             respect_gitignore=True)
                         file_count += len(files)
@@ -277,7 +276,7 @@ def scan(paths: tuple, agents: str, timeout: int, output: str, diff_only: bool,
                     console.print(f"[blue]Scanning git-tracked files only[/blue]")
                 else:
                     # Fall back to gitignore-aware method for non-git directories
-                    files = get_file_list([path], respect_gitignore=True)
+                    files = FileUtils.get_file_list([path], respect_gitignore=True)
                     total_files += len(files)
         
         # Update scan config to use git-tracked files for git repos

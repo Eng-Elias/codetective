@@ -3,7 +3,7 @@ Pydantic models for Codetective data structures.
 """
 
 from datetime import datetime
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 from enum import Enum
 
