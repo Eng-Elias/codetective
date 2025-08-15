@@ -7,8 +7,8 @@ from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 
-from ..models.schemas import AgentResult, AgentType, Issue
-from ..core.config import Config
+from codetective.models.schemas import AgentResult, AgentType, Issue
+from codetective.core.config import Config
 
 
 class BaseAgent(ABC):

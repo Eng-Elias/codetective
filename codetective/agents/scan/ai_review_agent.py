@@ -7,10 +7,10 @@ import requests
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 
-from ...models.schemas import AgentType, Issue, SeverityLevel, IssueStatus
-from ...core.utils import check_tool_availability, get_file_content
-from ...core.search import create_search_tool, SearchTool
-from ..base import ScanAgent
+from codetective.models.schemas import AgentType, Issue, SeverityLevel
+from codetective.core.utils import check_tool_availability, get_file_content
+from codetective.core.search import create_search_tool
+from codetective.agents.base import ScanAgent
 
 
 class AIReviewAgent(ScanAgent):

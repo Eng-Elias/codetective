@@ -6,10 +6,10 @@ import requests
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 
-from ...models.schemas import AgentType, Issue, IssueStatus
-from ...core.utils import check_tool_availability, get_file_content
-from ...core.search import create_search_tool, SearchTool
-from ..base import OutputAgent
+from codetective.models.schemas import AgentType, Issue, IssueStatus
+from codetective.core.utils import check_tool_availability, get_file_content
+from codetective.core.search import create_search_tool
+from codetective.agents.base import OutputAgent
 
 
 class CommentAgent(OutputAgent):

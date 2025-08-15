@@ -8,15 +8,15 @@ from typing_extensions import TypedDict
 from langgraph.graph import StateGraph, END
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from ..models.schemas import (
+from codetective.models.schemas import (
     ScanConfig, FixConfig, ScanResult, FixResult, AgentResult, 
     AgentType, Issue, IssueStatus
 )
-from ..agents import (
+from codetective.agents import (
     SemGrepAgent, TrivyAgent, CommentAgent, EditAgent
 )
-from ..agents.scan.dynamic_ai_agent import DynamicAIReviewAgent
-from .config import Config
+from codetective.agents.scan.dynamic_ai_agent import DynamicAIReviewAgent
+from codetective.core.config import Config
 
 
 class ScanState(TypedDict):
