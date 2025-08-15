@@ -102,19 +102,15 @@ def show_project_selection_page():
     st.header("📁 Project Selection")
     
     # Project path input
-    col1, col2 = st.columns([3, 1])
+    project_path = st.text_input(
+        "Project Path",
+        value=st.session_state.project_path,
+        placeholder="Enter the path to your project (e.g., /path/to/project or .)"
+    )
     
-    with col1:
-        project_path = st.text_input(
-            "Project Path",
-            value=st.session_state.project_path,
-            placeholder="Enter the path to your project (e.g., /path/to/project or .)"
-        )
-    
-    with col2:
-        if st.button("Browse", help="Browse for project directory"):
-            # Note: Streamlit doesn't have native file browser, so we'll use text input
-            st.info("Please enter the project path manually")
+    if st.button("Start Detection", help="Start project detection and analysis"):
+        # Note: Streamlit doesn't have native file browser, so we'll use text input
+        st.info("Please enter the project path manually")
     
     if project_path:
         st.session_state.project_path = project_path
@@ -135,24 +131,9 @@ def show_project_selection_page():
                 selected_files = []
                 
                 if scan_mode == "Git Diff Only":
-                    # Git diff mode
-                    if st.button("🔍 Load Git Diff Files"):
-                        try:
-                            os.chdir(project_path)
-                            diff_files = get_git_diff_files()
-                            st.session_state.diff_files = diff_files
-                            if diff_files:
-                                st.success(f"Found {len(diff_files)} modified files")
-                                for file in diff_files[:10]:  # Show first 10
-                                    st.write(f"📄 {Path(file).name}")
-                                if len(diff_files) > 10:
-                                    st.write(f"... and {len(diff_files) - 10} more files")
-                            else:
-                                st.warning("No modified files found in git diff")
-                        except Exception as e:
-                            st.error(f"Error getting git diff: {e}")
-                    
-                    selected_files = st.session_state.diff_files
+                    # Git diff mode - will be handled during scan
+                    st.info("🔄 Git diff files will be detected automatically during scan")
+                    selected_files = [project_path]  # Use project path, scan will handle git diff
                 
                 elif scan_mode == "Custom File Selection":
                     # File tree selection with checkboxes
@@ -226,7 +207,7 @@ def show_project_selection_page():
                 
                 # Start scan button
                 scan_enabled = (scan_mode == "Full Project Scan" or 
-                              (scan_mode == "Git Diff Only" and st.session_state.diff_files) or 
+                              scan_mode == "Git Diff Only" or 
                               (scan_mode == "Custom File Selection" and selected_files))
                 
                 if st.button("🚀 Start Scan", type="primary", use_container_width=True, disabled=not scan_enabled):
@@ -449,6 +430,19 @@ def start_scan(selected_files: List[str], use_semgrep: bool, use_trivy: bool,
                use_ai_review: bool, timeout: int, use_parallel: bool, force_ai: bool, 
                max_files: int, scan_mode: str):
     """Start the scanning process."""
+    # Handle Git Diff Only mode
+    if scan_mode == "Git Diff Only":
+        try:
+            diff_files = get_git_diff_files()
+            if not diff_files:
+                st.warning("No modified files found in git diff")
+                return
+            selected_files = diff_files
+            st.info(f"Scanning {len(diff_files)} modified files from git diff")
+        except Exception as e:
+            st.error(f"Error getting git diff files: {e}")
+            return
+    
     # Prepare agent list
     agents = []
     if use_semgrep:
@@ -522,7 +516,6 @@ def start_scan(selected_files: List[str], use_semgrep: bool, use_trivy: bool,
         st.success(f"Scan completed! Found {scan_result.total_issues} issues")
         
         # Auto-navigate to results
-        time.sleep(1)
         st.session_state.current_page = "scan_results"
         st.rerun()
     
