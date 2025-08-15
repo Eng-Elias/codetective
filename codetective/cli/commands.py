@@ -21,12 +21,6 @@ from codetective.utils import GitUtils
 
 console = Console()
 
-
-def get_git_diff_files() -> List[str]:
-    """Get list of new/modified files from git diff."""
-    return GitUtils.get_diff_files()
-
-
 def _display_scan_results_in_terminal(scan_result, console):
     """Display scan results in terminal format."""
     # Show detailed issues by type
@@ -187,7 +181,7 @@ def scan(paths: tuple, agents: str, timeout: int, output: str, diff_only: bool,
         # Handle diff-only scanning
         if diff_only:
             console.print("[bold yellow]Scanning only git diff files...[/bold yellow]")
-            diff_files = get_git_diff_files()
+            diff_files = GitUtils.get_diff_files()
             if not diff_files:
                 console.print("[yellow]No modified files found in git diff[/yellow]")
                 return

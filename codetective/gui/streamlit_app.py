@@ -15,7 +15,6 @@ try:
     from codetective.core.orchestrator import CodeDetectiveOrchestrator
     from codetective.utils import SystemUtils, FileUtils, GitUtils
     from codetective.models.schemas import ScanConfig, FixConfig, AgentType, Issue
-    from codetective.cli.commands import get_git_diff_files
 except ImportError:
     # Fall back to absolute imports (when run as script)
     import sys
@@ -30,7 +29,6 @@ except ImportError:
     from codetective.core.orchestrator import CodeDetectiveOrchestrator
     from codetective.utils import SystemUtils, FileUtils, GitUtils
     from codetective.models.schemas import ScanConfig, FixConfig, AgentType, Issue
-    from codetective.cli.commands import get_git_diff_files
     from codetective.utils.git_utils import GitUtils
 
 
@@ -122,20 +120,35 @@ def show_project_selection_page():
                 
                 # Scan mode selection
                 st.subheader("📋 Scan Mode")
+
+                SCAN_MODES = {
+                    "full": "Full Project Scan",
+                    "diff": "Git Diff Only",
+                    "custom": "Custom File Selection",
+                }
+
                 scan_mode = st.radio(
                     "Select scan mode:",
-                    ["Full Project Scan", "Git Diff Only", "Custom File Selection"],
+                    [SCAN_MODES["full"], SCAN_MODES["diff"], SCAN_MODES["custom"]],
                     help="Choose how to select files for scanning"
                 )
                 
                 selected_files = []
                 
-                if scan_mode == "Git Diff Only":
-                    # Git diff mode - will be handled during scan
+                if scan_mode == SCAN_MODES["diff"]:
                     st.info("🔄 Git diff files will be detected automatically during scan")
-                    selected_files = [project_path]  # Use project path, scan will handle git diff
+                    try:
+                        diff_files = GitUtils.get_diff_files()
+                        if not diff_files:
+                            st.warning("No modified files found in git diff")
+                            return
+                        selected_files = diff_files
+                        st.info(f"Scanning {len(diff_files)} modified files from git diff")
+                    except Exception as e:
+                        st.error(f"Error getting git diff files: {e}")
+                        return
                 
-                elif scan_mode == "Custom File Selection":
+                elif scan_mode == SCAN_MODES["custom"]:
                     # File tree selection with checkboxes
                     st.write("**Select Files to Scan:**")
                     
@@ -430,19 +443,6 @@ def start_scan(selected_files: List[str], use_semgrep: bool, use_trivy: bool,
                use_ai_review: bool, timeout: int, use_parallel: bool, force_ai: bool, 
                max_files: int, scan_mode: str):
     """Start the scanning process."""
-    # Handle Git Diff Only mode
-    if scan_mode == "Git Diff Only":
-        try:
-            diff_files = get_git_diff_files()
-            if not diff_files:
-                st.warning("No modified files found in git diff")
-                return
-            selected_files = diff_files
-            st.info(f"Scanning {len(diff_files)} modified files from git diff")
-        except Exception as e:
-            st.error(f"Error getting git diff files: {e}")
-            return
-    
     # Prepare agent list
     agents = []
     if use_semgrep:
