@@ -8,13 +8,15 @@ import os
 from pathlib import Path
 from typing import List, Dict, Any
 import time
+from streamlit_tree_select import tree_select
 
 try:
     # Try relative imports first (when run as module)
     from ..core.config import get_config
     from ..core.orchestrator import CodeDetectiveOrchestrator
-    from ..core.utils import get_system_info, validate_paths
+    from ..core.utils import get_system_info, validate_paths, get_file_list, load_gitignore_patterns, is_ignored_by_git
     from ..models.schemas import ScanConfig, FixConfig, AgentType, Issue
+    from ..cli.commands import get_git_diff_files
 except ImportError:
     # Fall back to absolute imports (when run as script)
     import sys
@@ -27,8 +29,10 @@ except ImportError:
     
     from codetective.core.config import get_config
     from codetective.core.orchestrator import CodeDetectiveOrchestrator
-    from codetective.core.utils import get_system_info, validate_paths
+    from codetective.core.utils import get_system_info, validate_paths, get_file_list, load_gitignore_patterns, is_ignored_by_git
     from codetective.models.schemas import ScanConfig, FixConfig, AgentType, Issue
+    from codetective.cli.commands import get_git_diff_files
+    from codetective.utils.git_utils import GitUtils
 
 
 # Page configuration
@@ -48,6 +52,10 @@ if 'selected_issues' not in st.session_state:
     st.session_state.selected_issues = []
 if 'project_path' not in st.session_state:
     st.session_state.project_path = ""
+if 'selected_files' not in st.session_state:
+    st.session_state.selected_files = []
+if 'diff_files' not in st.session_state:
+    st.session_state.diff_files = []
 
 
 def main():
@@ -117,8 +125,57 @@ def show_project_selection_page():
             if Path(project_path).exists():
                 st.success(f"✅ Valid path: {Path(project_path).absolute()}")
                 
-                # Show file tree (limited depth)
-                show_file_tree(project_path)
+                # Scan mode selection
+                st.subheader("📋 Scan Mode")
+                scan_mode = st.radio(
+                    "Select scan mode:",
+                    ["Full Project Scan", "Git Diff Only", "Custom File Selection"],
+                    help="Choose how to select files for scanning"
+                )
+                
+                selected_files = []
+                
+                if scan_mode == "Git Diff Only":
+                    # Git diff mode
+                    if st.button("🔍 Load Git Diff Files"):
+                        try:
+                            os.chdir(project_path)
+                            diff_files = get_git_diff_files()
+                            st.session_state.diff_files = diff_files
+                            if diff_files:
+                                st.success(f"Found {len(diff_files)} modified files")
+                                for file in diff_files[:10]:  # Show first 10
+                                    st.write(f"📄 {Path(file).name}")
+                                if len(diff_files) > 10:
+                                    st.write(f"... and {len(diff_files) - 10} more files")
+                            else:
+                                st.warning("No modified files found in git diff")
+                        except Exception as e:
+                            st.error(f"Error getting git diff: {e}")
+                    
+                    selected_files = st.session_state.diff_files
+                
+                elif scan_mode == "Custom File Selection":
+                    # File tree selection with checkboxes
+                    st.write("**Select Files to Scan:**")
+                    
+                    # Check if it's a git repository
+                    if GitUtils.is_git_repo(project_path):
+                        st.info("🔍 Git repository detected - showing git-tracked files only")
+                        selected_files = show_git_file_tree_selector(project_path)
+                    else:
+                        st.info("📁 Non-git directory - showing all files (respecting .gitignore)")
+                        selected_files = show_file_tree_selector(project_path)
+                
+                else:
+                    # Full project scan - check if git repo
+                    if GitUtils.is_git_repo(project_path):
+                        st.info("🔍 Git repository detected - scanning git-tracked files only")
+                        selected_files = GitUtils.get_code_files(project_path)
+                        if not selected_files:
+                            st.warning("No git-tracked code files found")
+                    else:
+                        selected_files = [project_path]
                 
                 # Scan configuration
                 st.subheader("🔧 Scan Configuration")
@@ -129,7 +186,12 @@ def show_project_selection_page():
                     st.write("**Select Agents:**")
                     use_semgrep = st.checkbox("SemGrep (Static Analysis)", value=True)
                     use_trivy = st.checkbox("Trivy (Security Scanning)", value=True)
-                    use_ai_review = st.checkbox("AI Review (Intelligent Analysis)", value=True)
+                    use_ai_review = st.checkbox("AI Review (Intelligent Analysis)", value=False)
+                    
+                    # Advanced options
+                    st.write("**Advanced Options:**")
+                    use_parallel = st.checkbox("Parallel Execution", value=False, help="Run agents in parallel for faster scanning")
+                    force_ai = st.checkbox("Force AI Review", value=False, help="Enable AI Review even for large file sets (>10 files)")
                 
                 with col2:
                     timeout = st.number_input(
@@ -139,10 +201,37 @@ def show_project_selection_page():
                         value=300,
                         step=30
                     )
+                    
+                    max_files = st.number_input(
+                        "Max Files (0 = unlimited)",
+                        min_value=0,
+                        max_value=1000,
+                        value=0,
+                        step=10,
+                        help="Limit the maximum number of files to scan"
+                    )
+                
+                # Smart AI Review handling
+                if use_ai_review and scan_mode != "Git Diff Only":
+                    if scan_mode == "Full Project Scan":
+                        if GitUtils.is_git_repo(project_path):
+                            file_count = GitUtils.get_file_count(project_path)
+                        else:
+                            file_count = count_files_in_path(project_path)
+                    else:
+                        file_count = len(selected_files)
+                    
+                    if file_count > 10 and not force_ai:
+                        st.warning(f"⚠️ {file_count} files detected. AI Review will be disabled for performance. Enable 'Force AI Review' to override.")
+                        use_ai_review = False
                 
                 # Start scan button
-                if st.button("🚀 Start Scan", type="primary", use_container_width=True):
-                    start_scan(project_path, use_semgrep, use_trivy, use_ai_review, timeout)
+                scan_enabled = (scan_mode == "Full Project Scan" or 
+                              (scan_mode == "Git Diff Only" and st.session_state.diff_files) or 
+                              (scan_mode == "Custom File Selection" and selected_files))
+                
+                if st.button("🚀 Start Scan", type="primary", use_container_width=True, disabled=not scan_enabled):
+                    start_scan(selected_files, use_semgrep, use_trivy, use_ai_review, timeout, use_parallel, force_ai, max_files, scan_mode)
             
             else:
                 st.error(f"❌ Path does not exist: {project_path}")
@@ -151,39 +240,215 @@ def show_project_selection_page():
             st.error(f"❌ Error validating path: {e}")
 
 
-def show_file_tree(project_path: str, max_files: int = 50):
-    """Show a simple file tree for the project."""
-    st.write("**Project Files:**")
-    
+def show_file_tree_selector(project_path: str) -> List[str]:
+    """Show an interactive file tree with checkboxes for file selection."""
     try:
         path = Path(project_path)
-        files = []
         
-        # Get files (limited to prevent overwhelming display)
-        for file_path in path.rglob("*"):
-            if file_path.is_file() and len(files) < max_files:
-                rel_path = file_path.relative_to(path)
-                files.append(str(rel_path))
+        # Build tree structure for streamlit_tree_select
+        nodes = build_tree_nodes(path)
         
-        if files:
-            # Show first few files
-            display_files = files[:20]
-            for file in display_files:
-                st.write(f"📄 {file}")
+        if nodes:
+            # Use tree_select component
+            return_select = tree_select(
+                nodes,
+                check_model="all",  # Allow both files and folders to be checked
+                expanded=[],  # Start with collapsed tree
+                only_leaf_checkboxes=False,  # Allow checkboxes on both files and folders
+                show_expand_all=True  # Show expand/collapse all buttons
+            )
             
-            if len(files) > 20:
-                st.write(f"... and {len(files) - 20} more files")
+            # Extract selected file paths
+            selected_files = []
+            if return_select and 'checked' in return_select:
+                selected_dirs = []
+                selected_individual_files = []
+                
+                # Separate directories and individual files
+                for item_value in return_select['checked']:
+                    if item_value.startswith('dir_'):
+                        dir_path = item_value.replace('dir_', '')
+                        selected_dirs.append(str(Path(project_path) / dir_path))
+                    elif item_value.startswith('file_'):
+                        file_path = item_value.replace('file_', '')
+                        selected_individual_files.append(str(Path(project_path) / file_path))
+                
+                # Get all files from selected directories (respecting .gitignore)
+                for dir_path in selected_dirs:
+                    dir_files = get_file_list([dir_path], 
+                                            include_patterns=['*.py', '*.js', '*.ts', '*.jsx', '*.tsx', '*.java', '*.c', '*.cpp', '*.h', '*.hpp', '*.cs', '*.php', '*.rb', '*.go', '*.rs', '*.swift', '*.kt', '*.scala', '*.sh', '*.yaml', '*.yml', '*.json', '*.xml', '*.html', '*.css', '*.scss', '*.less', '*.md', '*.txt'],
+                                            respect_gitignore=True)
+                    selected_files.extend(dir_files)
+                
+                # Add individual files
+                selected_files.extend(selected_individual_files)
+                
+                # Remove duplicates while preserving order
+                seen = set()
+                unique_files = []
+                for f in selected_files:
+                    if f not in seen:
+                        seen.add(f)
+                        unique_files.append(f)
+                selected_files = unique_files
             
-            st.info(f"Total files found: {len(files)}")
+            st.session_state.selected_files = selected_files
+            
+            if selected_files:
+                st.info(f"Selected {len(selected_files)} files for scanning")
+            
+            return selected_files
         else:
             st.warning("No files found in the specified path")
+            return []
     
     except Exception as e:
-        st.error(f"Error reading project files: {e}")
+        st.error(f"Error building file tree: {e}")
+        return []
 
 
-def start_scan(project_path: str, use_semgrep: bool, use_trivy: bool, 
-               use_ai_review: bool, timeout: int):
+def show_git_file_tree_selector(project_path: str) -> List[str]:
+    """Show an interactive git-tracked file tree with checkboxes for file selection."""
+    try:
+        # Build git-aware tree structure
+        nodes = GitUtils.build_git_tree_structure(project_path)
+        
+        if nodes:
+            # Use tree_select component
+            return_select = tree_select(
+                nodes,
+                check_model="all",  # Allow both files and folders to be checked
+                expanded=[],  # Start with collapsed tree
+                only_leaf_checkboxes=False,  # Allow checkboxes on both files and folders
+                show_expand_all=True  # Show expand/collapse all buttons
+            )
+            
+            # Extract selected file paths
+            selected_files = []
+            if return_select and 'checked' in return_select:
+                git_root = GitUtils.get_git_root(project_path)
+                if not git_root:
+                    return []
+                
+                selected_dirs = []
+                selected_individual_files = []
+                
+                # Separate directories and individual files
+                for item_value in return_select['checked']:
+                    if item_value.startswith('dir_'):
+                        dir_path = item_value.replace('dir_', '')
+                        selected_dirs.append(dir_path)
+                    elif item_value.startswith('file_'):
+                        file_path = item_value.replace('file_', '')
+                        selected_individual_files.append(str(Path(git_root) / file_path))
+                
+                # Get all git-tracked files from selected directories
+                all_git_files = GitUtils.get_code_files(git_root)
+                for dir_path in selected_dirs:
+                    dir_prefix = f"{dir_path}/"
+                    for git_file in all_git_files:
+                        try:
+                            rel_path = str(Path(git_file).relative_to(Path(git_root)))
+                            if rel_path.startswith(dir_prefix) or rel_path.startswith(dir_path.replace('/', os.sep)):
+                                selected_files.append(git_file)
+                        except ValueError:
+                            continue
+                
+                # Add individual files
+                selected_files.extend(selected_individual_files)
+                
+                # Remove duplicates while preserving order
+                seen = set()
+                unique_files = []
+                for f in selected_files:
+                    if f not in seen:
+                        seen.add(f)
+                        unique_files.append(f)
+                selected_files = unique_files
+            
+            st.session_state.selected_files = selected_files
+            
+            if selected_files:
+                st.info(f"Selected {len(selected_files)} git-tracked files for scanning")
+            
+            return selected_files
+        else:
+            st.warning("No git-tracked files found in the repository")
+            return []
+    
+    except Exception as e:
+        st.error(f"Error building git file tree: {e}")
+        return []
+
+
+def build_tree_nodes(path: Path, max_depth: int = 3, current_depth: int = 0, project_root: Path = None) -> List[Dict]:
+    """Build tree nodes for streamlit_tree_select component."""
+    nodes = []
+    
+    if current_depth >= max_depth:
+        return nodes
+    
+    if project_root is None:
+        project_root = path
+    
+    # Load .gitignore patterns for filtering
+    gitignore_patterns = load_gitignore_patterns(str(project_root))
+    
+    try:
+        # Get directories and files separately
+        items = list(path.iterdir())
+        dirs = [item for item in items if item.is_dir() and not item.name.startswith('.')]
+        files = [item for item in items if item.is_file() and not item.name.startswith('.')]
+        
+        # Filter out ignored directories and files
+        dirs = [d for d in dirs if not is_ignored_by_git(d, project_root, gitignore_patterns)]
+        files = [f for f in files if not is_ignored_by_git(f, project_root, gitignore_patterns)]
+        
+        # Add directories first
+        for dir_path in sorted(dirs):
+            try:
+                children = build_tree_nodes(dir_path, max_depth, current_depth + 1, project_root)
+                # Add directory even if no children (user can select empty dirs)
+                node = {
+                    "label": f"📁 {dir_path.name}",
+                    "value": f"dir_{dir_path.relative_to(project_root)}",
+                }
+                if children:
+                    node["children"] = children
+                nodes.append(node)
+            except (PermissionError, OSError):
+                continue
+        
+        # Add files
+        for file_path in sorted(files):
+            # Filter for code files
+            if file_path.suffix in ['.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.c', '.cpp', '.h', '.hpp', '.cs', '.php', '.rb', '.go', '.rs', '.swift', '.kt', '.scala', '.sh', '.yaml', '.yml', '.json', '.xml', '.html', '.css', '.scss', '.less', '.md', '.txt']:
+                node = {
+                    "label": f"📄 {file_path.name}",
+                    "value": f"file_{file_path.relative_to(project_root)}"
+                }
+                nodes.append(node)
+    
+    except (PermissionError, OSError):
+        pass
+    
+    return nodes
+
+
+def count_files_in_path(project_path: str) -> int:
+    """Count the number of scannable files in a project path (respecting .gitignore)."""
+    try:
+        files = get_file_list([project_path], 
+                            include_patterns=['*.py', '*.js', '*.ts', '*.jsx', '*.tsx', '*.java', '*.c', '*.cpp', '*.h', '*.hpp', '*.cs', '.php', '*.rb', '*.go', '*.rs', '*.swift', '*.kt', '*.scala', '*.sh'],
+                            respect_gitignore=True)
+        return len(files)
+    except Exception:
+        return 0
+
+
+def start_scan(selected_files: List[str], use_semgrep: bool, use_trivy: bool, 
+               use_ai_review: bool, timeout: int, use_parallel: bool, force_ai: bool, 
+               max_files: int, scan_mode: str):
     """Start the scanning process."""
     # Prepare agent list
     agents = []
@@ -198,11 +463,17 @@ def start_scan(project_path: str, use_semgrep: bool, use_trivy: bool,
         st.error("Please select at least one agent")
         return
     
+    if not selected_files:
+        st.error("No files selected for scanning")
+        return
+    
     # Create scan configuration
     scan_config = ScanConfig(
         agents=agents,
         timeout=timeout,
-        paths=[project_path]
+        paths=selected_files,
+        max_files=max_files if max_files > 0 else None,
+        parallel_execution=use_parallel
     )
     
     # Show progress
@@ -214,8 +485,15 @@ def start_scan(project_path: str, use_semgrep: bool, use_trivy: bool,
         config = get_config()
         orchestrator = CodeDetectiveOrchestrator(config)
         
+        # Set parallel execution flag if needed
+        if use_parallel:
+            orchestrator._parallel_execution = True
+        
         # Run scan
-        status_text.text("🔍 Running scan...")
+        scan_info = f"🔍 Running {scan_mode.lower()} scan..."
+        if use_parallel:
+            scan_info += " (parallel mode)"
+        status_text.text(scan_info)
         progress_bar.progress(25)
         
         scan_result = orchestrator.run_scan(scan_config)
@@ -226,8 +504,23 @@ def start_scan(project_path: str, use_semgrep: bool, use_trivy: bool,
         # Store results in session state
         st.session_state.scan_results = scan_result
         
-        # Show summary
-        st.success(f"Scan completed! Found {scan_result.total_issues} issues in {scan_result.scan_duration:.2f} seconds")
+        # Show summary with enhanced info
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Issues Found", scan_result.total_issues)
+        with col2:
+            st.metric("Scan Duration", f"{scan_result.scan_duration:.2f}s")
+        with col3:
+            st.metric("Files Scanned", len(selected_files))
+        
+        # Show agent performance if available
+        if hasattr(scan_result, 'agent_results') and scan_result.agent_results:
+            st.subheader("Agent Performance")
+            for agent_result in scan_result.agent_results:
+                status_icon = "✅" if agent_result.success else "❌"
+                st.write(f"{status_icon} {agent_result.agent_type.value.title()}: {len(agent_result.issues)} issues in {agent_result.execution_time:.2f}s")
+        
+        st.success(f"Scan completed! Found {scan_result.total_issues} issues")
         
         # Auto-navigate to results
         time.sleep(1)
@@ -238,6 +531,7 @@ def start_scan(project_path: str, use_semgrep: bool, use_trivy: bool,
         progress_bar.progress(0)
         status_text.text("")
         st.error(f"Scan failed: {e}")
+        st.exception(e)  # Show full traceback for debugging
 
 
 def show_scan_results_page():
