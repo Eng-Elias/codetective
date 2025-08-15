@@ -53,6 +53,10 @@ if 'selected_files' not in st.session_state:
     st.session_state.selected_files = []
 if 'diff_files' not in st.session_state:
     st.session_state.diff_files = []
+if 'scanning_in_progress' not in st.session_state:
+    st.session_state.scanning_in_progress = False
+if 'selected_issue_checkboxes' not in st.session_state:
+    st.session_state.selected_issue_checkboxes = {}
 
 
 def main():
@@ -223,7 +227,12 @@ def show_project_selection_page():
                               scan_mode == "Git Diff Only" or 
                               (scan_mode == "Custom File Selection" and selected_files))
                 
-                if st.button("🚀 Start Scan", type="primary", use_container_width=True, disabled=not scan_enabled):
+                # Disable button during scan or if conditions not met
+                button_disabled = not scan_enabled or st.session_state.scanning_in_progress
+                button_text = "⏳ Scanning..." if st.session_state.scanning_in_progress else "🚀 Start Scan"
+                
+                if st.button(button_text, type="primary", use_container_width=True, disabled=button_disabled):
+                    st.session_state.scanning_in_progress = True
                     start_scan(selected_files, use_semgrep, use_trivy, use_ai_review, timeout, use_parallel, force_ai, max_files, scan_mode)
             
             else:
@@ -443,6 +452,9 @@ def start_scan(selected_files: List[str], use_semgrep: bool, use_trivy: bool,
                use_ai_review: bool, timeout: int, use_parallel: bool, force_ai: bool, 
                max_files: int, scan_mode: str):
     """Start the scanning process."""
+    # Clear previous checkbox states when starting new scan
+    st.session_state.selected_issue_checkboxes = {}
+    st.session_state.selected_issues = []
     # Prepare agent list
     agents = []
     if use_semgrep:
@@ -496,6 +508,7 @@ def start_scan(selected_files: List[str], use_semgrep: bool, use_trivy: bool,
         
         # Store results in session state
         st.session_state.scan_results = scan_result
+        st.session_state.scanning_in_progress = False
         
         # Show summary with enhanced info
         col1, col2, col3 = st.columns(3)
@@ -522,6 +535,7 @@ def start_scan(selected_files: List[str], use_semgrep: bool, use_trivy: bool,
     except Exception as e:
         progress_bar.progress(0)
         status_text.text("")
+        st.session_state.scanning_in_progress = False
         st.error(f"Scan failed: {e}")
         st.exception(e)  # Show full traceback for debugging
 
@@ -572,7 +586,15 @@ def show_scan_results_page():
                          scan_result.trivy_results + 
                          scan_result.ai_review_results)
             st.session_state.selected_issues = all_issues
-            st.success(f"Selected {len(all_issues)} issues for fixing")
+            # Update checkbox states for all issues
+            st.session_state.selected_issue_checkboxes = {}
+            for i, issue in enumerate(scan_result.semgrep_results):
+                st.session_state.selected_issue_checkboxes[f"issue_SemGrep_{i}"] = True
+            for i, issue in enumerate(scan_result.trivy_results):
+                st.session_state.selected_issue_checkboxes[f"issue_Trivy_{i}"] = True
+            for i, issue in enumerate(scan_result.ai_review_results):
+                st.session_state.selected_issue_checkboxes[f"issue_AI Review_{i}"] = True
+            st.rerun()
         
         if st.session_state.selected_issues:
             st.info(f"Selected {len(st.session_state.selected_issues)} issues for fixing")
@@ -614,10 +636,16 @@ def show_issues_tab(agent_name: str, issues: List[Issue]):
                 
                 st.write(f"**Severity:** {severity_color.get(issue.severity.value, '⚪')} {issue.severity.value.title()}")
                 
-                if st.checkbox(f"Include in fix", key=f"issue_{agent_name}_{i}"):
+                checkbox_key = f"issue_{agent_name}_{i}"
+                # Get checkbox state from session state or default to False
+                checkbox_value = st.session_state.selected_issue_checkboxes.get(checkbox_key, False)
+                
+                if st.checkbox(f"Include in fix", key=checkbox_key, value=checkbox_value):
+                    st.session_state.selected_issue_checkboxes[checkbox_key] = True
                     if issue not in st.session_state.selected_issues:
                         st.session_state.selected_issues.append(issue)
                 else:
+                    st.session_state.selected_issue_checkboxes[checkbox_key] = False
                     if issue in st.session_state.selected_issues:
                         st.session_state.selected_issues.remove(issue)
 
