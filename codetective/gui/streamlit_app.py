@@ -599,7 +599,14 @@ def show_issues_tab(agent_name: str, issues: List[Issue]):
     
     # Issues table
     for i, issue in enumerate(issues):
-        with st.expander(f"{issue.severity.value.upper()}: {issue.title}"):
+        severity_color = {
+            "low": "🟢",
+            "medium": "🟡", 
+            "high": "🟠",
+            "critical": "🔴"
+        }
+
+        with st.expander(f"{severity_color.get(issue.severity.value, '⚪')} {issue.severity.value.upper()}: {issue.title}"):
             col1, col2 = st.columns([2, 1])
             
             with col1:
@@ -611,12 +618,7 @@ def show_issues_tab(agent_name: str, issues: List[Issue]):
                     st.write(f"**Suggested Fix:** {issue.fix_suggestion}")
             
             with col2:
-                severity_color = {
-                    "low": "🟢",
-                    "medium": "🟡", 
-                    "high": "🟠",
-                    "critical": "🔴"
-                }
+                
                 st.write(f"**Severity:** {severity_color.get(issue.severity.value, '⚪')} {issue.severity.value.title()}")
                 
                 if st.checkbox(f"Include in fix", key=f"issue_{agent_name}_{i}"):
