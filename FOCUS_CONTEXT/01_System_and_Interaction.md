@@ -9,7 +9,7 @@
 - **Multiple Scanning Agents**: SemGrep, Trivy, AI Review agents
 - **Fixing Agents**: Comment and Edit agents for automated remediation
 - **CLI Interface**: Command-line interface using Click framework
-- **GUI Interface**: Streamlit-based web interface
+- **GUI Interface**: NiceGUI-based web interface
 
 ### External Dependencies
 - **SemGrep**: Static analysis security scanner
@@ -22,7 +22,7 @@
 - `codetective info`: System compatibility and tool availability check
 - `codetective scan [paths]`: Execute multi-agent code scanning
 - `codetective fix <json_file>`: Apply automated fixes to identified issues
-- `codetective gui`: Launch Streamlit web interface
+- `codetective gui`: Launch NiceGUI web interface
 
 ### File System Operations
 - **Input**: Source code files and directories

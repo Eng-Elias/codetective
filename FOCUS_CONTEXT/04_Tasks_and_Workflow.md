@@ -6,7 +6,7 @@
 1. **info** → Check system compatibility and tool availability
 2. **scan** → Execute multi-agent code analysis
 3. **fix** → Apply automated remediation to identified issues
-4. **gui** → Launch Streamlit web interface
+4. **gui** → Launch NiceGUI web interface
 
 ### Agent Orchestration Using LangGraph
 

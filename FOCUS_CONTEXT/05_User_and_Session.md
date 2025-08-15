@@ -16,7 +16,7 @@
 
 ## GUI User Profile
 
-**Web Interface Users via Streamlit**
+**Web Interface Users via NiceGUI**
 - Developers new to code analysis tools
 - Team leads conducting code reviews
 - Security analysts performing assessments

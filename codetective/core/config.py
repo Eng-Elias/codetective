@@ -36,7 +36,6 @@ class Config(BaseModel):
     # GUI configuration
     gui_host: str = Field(default="localhost", description="GUI host")
     gui_port: int = Field(default=7891, description="GUI port")
-    gui_type: str = Field(default="nicegui", description="GUI framework (streamlit or nicegui)")
     
     @classmethod
     def load_from_file(cls, config_path: Optional[str] = None) -> "Config":

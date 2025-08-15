@@ -229,7 +229,7 @@ class GitUtils:
                     # File is not under git root, skip
                     continue
             
-            # Convert tree structure to streamlit_tree_select format
+            # Convert tree structure to nicegui_tree_select format
             return GitUtils._convert_tree_to_nodes(tree, root_path)
         
         except Exception:
@@ -237,7 +237,7 @@ class GitUtils:
     
     @staticmethod
     def _convert_tree_to_nodes(tree: dict, root_path: Path, current_path: str = "") -> List[dict]:
-        """Convert internal tree structure to streamlit_tree_select nodes."""
+        """Convert internal tree structure to nicegui_tree_select nodes."""
         nodes = []
         
         # Add directories first
