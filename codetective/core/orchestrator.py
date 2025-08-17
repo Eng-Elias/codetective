@@ -3,10 +3,12 @@ LangGraph orchestrator for coordinating Codetective agents.
 """
 
 import time
+import json
 from typing import Dict, List, Any
 from typing_extensions import TypedDict
 from langgraph.graph import StateGraph, END
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 
 from codetective.models.schemas import (
     ScanConfig, FixConfig, ScanResult, FixResult, AgentResult, 
@@ -293,7 +295,7 @@ class CodeDetectiveOrchestrator:
         
         return scan_result
     
-    def run_fix(self, scan_data: Dict[str, Any], fix_config: FixConfig) -> FixResult:
+    def run_fix(self, scan_data: Dict[str, Any], fix_config: FixConfig, scan_results_file: str = None) -> FixResult:
         """Run the fix workflow."""
         start_time = time.time()
         
@@ -319,6 +321,10 @@ class CodeDetectiveOrchestrator:
         
         # Calculate total duration
         total_duration = time.time() - start_time
+        
+        # Update scan results file with fix status if provided
+        if scan_results_file and Path(scan_results_file).exists():
+            self._update_scan_results_file(scan_results_file, final_state["fixed_issues"], final_state["failed_issues"])
         
         # Create fix result
         fix_result = FixResult(
@@ -431,29 +437,35 @@ class CodeDetectiveOrchestrator:
         
         if self.edit_agent.is_available():
             try:
-                result = self.edit_agent.execute([], issues=state["issues_to_fix"])
-                if result.success:
-                    # Separate fixed and failed issues
-                    fixed_issues = []
-                    failed_issues = []
-                    
-                    for issue in result.issues:
-                        if issue.status == IssueStatus.FIXED:
-                            fixed_issues.append(issue)
-                        else:
-                            failed_issues.append(issue)
-                    
-                    updates["fixed_issues"] = fixed_issues
-                    updates["failed_issues"] = failed_issues
-                    
-                    # Track modified files
-                    modified_files = set()
-                    for issue in result.issues:
-                        if issue.status == IssueStatus.FIXED and issue.file_path:
-                            modified_files.add(issue.file_path)
-                    updates["modified_files"] = list(modified_files)
+                # Process issues directly with the edit agent
+                processed_issues = self.edit_agent.process_issues(state["issues_to_fix"])
+                
+                # Separate fixed and failed issues
+                fixed_issues = []
+                failed_issues = []
+                
+                for issue in processed_issues:
+                    if issue.status == IssueStatus.FIXED:
+                        fixed_issues.append(issue)
+                    elif issue.status == IssueStatus.FAILED:
+                        failed_issues.append(issue)
+                
+                updates["fixed_issues"] = fixed_issues
+                updates["failed_issues"] = failed_issues
+                
+                # Track modified files
+                modified_files = set()
+                for issue in processed_issues:
+                    if issue.status == IssueStatus.FIXED and issue.file_path:
+                        modified_files.add(issue.file_path)
+                updates["modified_files"] = list(modified_files)
+                
             except Exception as e:
+                print(f"Edit agent error: {e}")
                 updates["error_messages"] = [f"Edit agent error: {e}"]
+        else:
+            print("Edit agent is not available (Ollama not running or not accessible)")
+            updates["error_messages"] = ["Edit agent is not available"]
         
         return updates
     
@@ -475,3 +487,51 @@ class CodeDetectiveOrchestrator:
                 continue
         
         return issues
+    
+    def _update_scan_results_file(self, scan_results_file: str, fixed_issues: List[Issue], failed_issues: List[Issue]):
+        """Update the scan results JSON file with fix statuses."""
+        try:
+            # Read current scan results
+            with open(scan_results_file, 'r', encoding='utf-8') as f:
+                scan_data = json.load(f)
+            
+            # Create a mapping of issue IDs to their new status
+            issue_status_updates = {}
+            
+            for issue in fixed_issues:
+                # Create a unique identifier for the issue
+                issue_id = self._create_issue_id(issue)
+                issue_status_updates[issue_id] = IssueStatus.FIXED
+            
+            for issue in failed_issues:
+                issue_id = self._create_issue_id(issue)
+                issue_status_updates[issue_id] = IssueStatus.FAILED
+            
+            # Update issues in each category
+            for category in ['semgrep_results', 'trivy_results', 'ai_review_results']:
+                if category in scan_data:
+                    for issue_data in scan_data[category]:
+                        issue_id = self._create_issue_id_from_dict(issue_data)
+                        if issue_id in issue_status_updates:
+                            issue_data['status'] = issue_status_updates[issue_id].value
+            
+            # Write updated scan results back to file
+            with open(scan_results_file, 'w', encoding='utf-8') as f:
+                json.dump(scan_data, f, indent=2, ensure_ascii=False)
+            
+            print(f"Updated scan results file: {scan_results_file}")
+            
+        except Exception as e:
+            print(f"Warning: Could not update scan results file {scan_results_file}: {e}")
+    
+    def _create_issue_id(self, issue: Issue) -> str:
+        """Create a unique identifier for an issue."""
+        return f"{issue.file_path}:{issue.line_number}:{issue.title}:{issue.rule_id}"
+    
+    def _create_issue_id_from_dict(self, issue_data: Dict[str, Any]) -> str:
+        """Create a unique identifier for an issue from dictionary data."""
+        file_path = issue_data.get('file_path', '')
+        line_number = issue_data.get('line_number', '')
+        title = issue_data.get('title', '')
+        rule_id = issue_data.get('rule_id', '')
+        return f"{file_path}:{line_number}:{title}:{rule_id}"

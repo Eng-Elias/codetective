@@ -354,7 +354,9 @@ def scan(paths: tuple, agents: str, timeout: int, output: str, diff_only: bool,
 @click.option('-a', '--agents', 
               default='edit',
               help='Fix agents to use (comment or edit)')
-def fix(json_file: str, agents: str):
+@click.option('--keep-backup', is_flag=True, default=False,
+              help='Keep backup files after fix completion')
+def fix(json_file: str, agents: str, keep_backup: bool):
     """Apply automated fixes to identified issues."""
     try:
         # Load scan results
@@ -386,10 +388,14 @@ def fix(json_file: str, agents: str):
             dry_run=False
         )
         
-        console.print(f"[bold blue]Starting fix with agents: {', '.join([a.value for a in agent_list])}[/bold blue]")
+        # Set keep_backup option in config
+        config = get_config()
+        config.keep_backup = keep_backup
+        
+        backup_msg = "(keeping backup files)" if keep_backup else "(deleting backup files after completion)"
+        console.print(f"[bold blue]Starting fix with agents: {', '.join([a.value for a in agent_list])} {backup_msg}[/bold blue]")
         
         # Initialize orchestrator
-        config = get_config()
         orchestrator = CodeDetectiveOrchestrator(config)
         
         # Run fix
@@ -399,7 +405,7 @@ def fix(json_file: str, agents: str):
             console=console,
         ) as progress:
             task = progress.add_task("Applying fixes...", total=None)
-            fix_result = orchestrator.run_fix(scan_data, fix_config)
+            fix_result = orchestrator.run_fix(scan_data, fix_config, str(json_path))
             progress.update(task, completed=True)
         
         # Display summary
@@ -413,9 +419,20 @@ def fix(json_file: str, agents: str):
             console.print("\n[bold yellow]Modified files:[/bold yellow]")
             for file_path in fix_result.modified_files:
                 console.print(f"  • {file_path}")
+        
+        if fix_result.failed_issues:
+            console.print("\n[bold red]Failed fixes:[/bold red]")
+            for issue in fix_result.failed_issues:
+                console.print(f"  • {issue.file_path}:{issue.line_number} - {issue.title}")
+                if "Fix failed:" in issue.description:
+                    error_part = issue.description.split("Fix failed:")[-1].strip()
+                    console.print(f"    Error: {error_part}")
     
     except Exception as e:
         console.print(f"[red]Error during fix: {e}[/red]")
+        # Print more detailed error information
+        import traceback
+        console.print(f"[red]Detailed error: {traceback.format_exc()}[/red]")
         sys.exit(1)
 
 
