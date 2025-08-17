@@ -28,6 +28,7 @@ class Config(BaseModel):
     # File handling
     max_file_size: int = Field(default=10 * 1024 * 1024, description="Maximum file size to scan (bytes)")
     backup_files: bool = Field(default=True, description="Create backup files before fixing")
+    keep_backup: bool = Field(default=False, description="Keep backup files after fix completion")
     
     # Output configuration
     output_format: str = Field(default="json", description="Default output format")
@@ -76,6 +77,7 @@ class Config(BaseModel):
             "CODETECTIVE_OLLAMA_MODEL": "ollama_model",
             "CODETECTIVE_MAX_FILE_SIZE": "max_file_size",
             "CODETECTIVE_BACKUP_FILES": "backup_files",
+            "CODETECTIVE_KEEP_BACKUP": "keep_backup",
             "CODETECTIVE_OUTPUT_FORMAT": "output_format",
             "CODETECTIVE_VERBOSE": "verbose",
             "CODETECTIVE_GUI_HOST": "gui_host",
@@ -87,7 +89,7 @@ class Config(BaseModel):
             value = os.getenv(env_var)
             if value is not None:
                 # Convert string values to appropriate types
-                if config_field in ["semgrep_enabled", "trivy_enabled", "ai_review_enabled", "backup_files", "verbose"]:
+                if config_field in ["semgrep_enabled", "trivy_enabled", "ai_review_enabled", "backup_files", "keep_backup", "verbose"]:
                     env_config[config_field] = value.lower() in ("true", "1", "yes", "on")
                 elif config_field in ["default_timeout", "agent_timeout", "max_file_size", "gui_port"]:
                     env_config[config_field] = int(value)
