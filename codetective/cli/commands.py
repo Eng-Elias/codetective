@@ -351,13 +351,13 @@ def scan(paths: tuple, agents: str, timeout: int, output: str, diff_only: bool,
 
 @cli.command()
 @click.argument('json_file')
-@click.option('-a', '--agents', 
+@click.option('-a', '--agent', 
               default='edit',
-              help='Fix agents to use (comment or edit)')
+              help='Fix agent to use (comment or edit)')
 @click.option('--keep-backup', is_flag=True, default=False,
               help='Keep backup files after fix completion')
-def fix(json_file: str, agents: str, keep_backup: bool):
-    """Apply automated fixes to identified issues."""
+def fix(json_file: str, agent: str, keep_backup: bool):
+    """Apply automated fixes to identified issues using a single agent."""
     try:
         # Load scan results
         json_path = Path(json_file)
@@ -368,17 +368,15 @@ def fix(json_file: str, agents: str, keep_backup: bool):
         with open(json_path, 'r') as f:
             scan_data = json.load(f)
         
-        # Parse agents
-        agent_list = []
-        for agent_name in agents.split(','):
-            agent_name = agent_name.strip().lower()
-            if agent_name == 'comment':
-                agent_list.append(AgentType.COMMENT)
-            elif agent_name == 'edit':
-                agent_list.append(AgentType.EDIT)
-            else:
-                console.print(f"[red]Unknown fix agent: {agent_name}[/red]")
-                sys.exit(1)
+        # Parse agent
+        agent_name = agent.strip().lower()
+        if agent_name == 'comment':
+            agent_list = [AgentType.COMMENT]
+        elif agent_name == 'edit':
+            agent_list = [AgentType.EDIT]
+        else:
+            console.print(f"[red]Unknown fix agent: {agent_name}. Use 'comment' or 'edit'[/red]")
+            sys.exit(1)
         
         # Create fix configuration
         fix_config = FixConfig(
@@ -393,7 +391,7 @@ def fix(json_file: str, agents: str, keep_backup: bool):
         config.keep_backup = keep_backup
         
         backup_msg = "(keeping backup files)" if keep_backup else "(deleting backup files after completion)"
-        console.print(f"[bold blue]Starting fix with agents: {', '.join([a.value for a in agent_list])} {backup_msg}[/bold blue]")
+        console.print(f"[bold blue]Starting fix with agent: {agent_list[0].value} {backup_msg}[/bold blue]")
         
         # Initialize orchestrator
         orchestrator = CodeDetectiveOrchestrator(config)
