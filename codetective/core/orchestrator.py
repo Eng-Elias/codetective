@@ -121,7 +121,6 @@ class CodeDetectiveOrchestrator:
             {
                 "comment": "comment_fix",
                 "edit": "edit_fix",
-                "both": "comment_fix"
             }
         )
         workflow.add_edge("comment_fix", "aggregate_fixes")
@@ -406,10 +405,8 @@ class CodeDetectiveOrchestrator:
     def _route_fix_agents(self, state: FixState) -> str:
         """Route to appropriate fix agents."""
         agents = state["config"].agents
-        
-        if AgentType.COMMENT in agents and AgentType.EDIT in agents:
-            return "both"
-        elif AgentType.COMMENT in agents:
+
+        if AgentType.COMMENT in agents:
             return "comment"
         elif AgentType.EDIT in agents:
             return "edit"
