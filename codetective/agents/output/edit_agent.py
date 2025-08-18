@@ -172,7 +172,7 @@ Original code:
 
 IMPORTANT INSTRUCTIONS:
 - Return ONLY the complete fixed code
-- Do NOT include any explanations, comments about the fixes, or markdown formatting
+- Do NOT include any explanations, comments about the fixes, or markdown formatting before or after the code
 - Do NOT wrap the code in ``` blocks
 - Do NOT add any text before or after the code
 - Preserve the original file structure and formatting
@@ -199,7 +199,7 @@ Fixed code:
         }
         
         try:
-            response = requests.post(url, json=payload, timeout=self.config.agent_timeout * 2)  # Longer timeout for fixes
+            response = requests.post(url, json=payload)
             response.raise_for_status()
             
             result = response.json()
