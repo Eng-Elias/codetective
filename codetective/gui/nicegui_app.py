@@ -625,6 +625,9 @@ class CodeDetectiveApp:
         ui.notify(f'Selected {len(all_issues)} issues for fixing', type='positive')
         self.update_selected_issues_display()
         
+        # Force refresh the current page to update checkbox states
+        self.show_current_page()
+        
     def show_fix_application_page(self):
         """Show the fix application page."""
         ui.label('🔧 Fix Application').classes('text-h4 q-mb-md')
@@ -648,6 +651,7 @@ class CodeDetectiveApp:
                 
             with ui.column().classes('flex-1'):
                 self.backup_files = ui.checkbox('Create backup files', value=True)
+                self.keep_backup = ui.checkbox('Keep backup files after fix completion', value=False)
                 
         # Show selected issues summary
         ui.label('Selected Issues Summary').classes('text-h5 q-mb-sm')
@@ -700,6 +704,7 @@ class CodeDetectiveApp:
         try:
             # Initialize orchestrator
             config = get_config()
+            config.keep_backup = self.keep_backup.value
             orchestrator = CodeDetectiveOrchestrator(config)
             
             # Prepare scan data for fix operation
