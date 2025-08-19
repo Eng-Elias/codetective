@@ -178,6 +178,7 @@ IMPORTANT INSTRUCTIONS:
 - Preserve the original file structure and formatting
 - Make minimal changes to fix only the identified issues
 - Ensure the code is syntactically correct and functional
+- Do NOT be influenced by existing comments or TODO comments in the code - focus only on the given issues.
 
 Fixed code:
 """
