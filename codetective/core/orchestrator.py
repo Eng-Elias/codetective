@@ -17,7 +17,7 @@ from codetective.models.schemas import (
 from codetective.agents import (
     SemGrepAgent, TrivyAgent, CommentAgent, EditAgent
 )
-from codetective.agents.scan.dynamic_ai_agent import DynamicAIReviewAgent
+from codetective.agents.scan.dynamic_ai_review_agent import DynamicAIReviewAgent
 from codetective.core.config import Config
 
 
