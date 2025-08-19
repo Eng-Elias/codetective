@@ -680,10 +680,14 @@ class CodeDetectiveApp:
                 ui.label(str(severity_counts["critical"])).classes('text-h4 text-red')
                 
         # Apply fixes button
-        ui.button('🚀 Apply Fixes', on_click=self.apply_fixes).classes('w-full').props('size=lg color=primary')
+        self.apply_fixes_button = ui.button('🚀 Apply Fixes', on_click=self.apply_fixes).classes('w-full').props('size=lg color=primary')
         
     async def apply_fixes(self):
         """Apply fixes to selected issues."""
+        # Disable the apply fixes button
+        self.apply_fixes_button.props('disable')
+        self.apply_fixes_button.text = '⏳ Applying Fixes...'
+        
         # Create fix configuration
         agent_type = AgentType.EDIT if self.fix_agent.value == "edit" else AgentType.COMMENT
         
@@ -757,9 +761,28 @@ class CodeDetectiveApp:
                 
             results_dialog.open()
             
+            # Remove fixed issues from the scan results and GUI
+            fixed_issue_ids = {issue.id for issue in fix_result.fixed_issues}
+            
+            # Filter out fixed issues from scan results
+            self.scan_results.semgrep_results = [issue for issue in self.scan_results.semgrep_results if issue.id not in fixed_issue_ids]
+            self.scan_results.trivy_results = [issue for issue in self.scan_results.trivy_results if issue.id not in fixed_issue_ids]
+            self.scan_results.ai_review_results = [issue for issue in self.scan_results.ai_review_results if issue.id not in fixed_issue_ids]
+            
+            # Update total issues count
+            self.scan_results.total_issues = (len(self.scan_results.semgrep_results) + 
+                                            len(self.scan_results.trivy_results) + 
+                                            len(self.scan_results.ai_review_results))
+            
             # Clear selected issues
             self.selected_issues = []
             self.selected_issue_checkboxes = {}
+            
+            # Refresh the scan results page to show updated issues
+            if len(fixed_issue_ids) > 0:
+                ui.notify(f'Removed {len(fixed_issue_ids)} fixed issues from the list', type='positive')
+                # Navigate back to scan results to show updated list
+                self.navigate_to('scan_results')
             
         except Exception as e:
             progress.value = 0
@@ -767,6 +790,11 @@ class CodeDetectiveApp:
             await asyncio.sleep(2)
             progress_container.delete()
             ui.notify(f'Fix operation failed: {e}', type='negative')
+            
+        finally:
+            # Re-enable the apply fixes button
+            self.apply_fixes_button.props('enable')
+            self.apply_fixes_button.text = '🚀 Apply Fixes'
             
     def refresh_page(self):
         """Refresh the current page."""
