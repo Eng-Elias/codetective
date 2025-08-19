@@ -101,7 +101,8 @@ class CommentAgent(OutputAgent):
                     print(f"Created backup: {backup_path}")
             
             # Sort issues by line number (descending) to avoid line number shifts
-            sorted_issues = sorted(issues, key=lambda x: x.line_number or 0, reverse=True)
+            # Issues with None/0 line numbers go to the end (will be added at beginning of file)
+            sorted_issues = sorted(issues, key=lambda x: x.line_number if x.line_number else float('inf'), reverse=True)
             
             # Process each issue individually
             processed_issues = []
@@ -202,7 +203,7 @@ You are a helpful code reviewer. Provide a clear explanation for the following c
 Issue Details:
 - Title: {issue.title}
 - Description: {issue.description}
-- Severity: {issue.severity.value}
+- Severity: {issue.severity.value if issue.severity else 'N/A'}
 - File: {issue.file_path}
 - Line: {issue.line_number or 'N/A'}
 
@@ -331,17 +332,22 @@ IMPORTANT:
             with open(issue.file_path, 'r', encoding='utf-8', errors='ignore') as f:
                 lines = f.readlines()
             
-            if not lines or not issue.line_number or issue.line_number > len(lines):
+            if not lines:
                 return False
+            
+            # Handle None or invalid line numbers - add comment at beginning of file
+            if not issue.line_number or issue.line_number <= 0 or issue.line_number > len(lines):
+                insert_line = 0  # Add at beginning of file
+                target_line = lines[0] if lines else ""
+            else:
+                # Insert comment before the problematic line
+                insert_line = issue.line_number - 1  # Convert to 0-based index
+                target_line = lines[insert_line] if insert_line < len(lines) else ""
             
             # Format the comment for the specific file type
             formatted_comment = self._format_comment_for_file(issue.file_path, comment, issue.title)
             
-            # Insert comment before the problematic line
-            insert_line = issue.line_number - 1  # Convert to 0-based index
-            
             # Get indentation from the target line
-            target_line = lines[insert_line] if insert_line < len(lines) else ""
             indent = self._get_line_indentation(target_line)
             
             # Add indentation to comment lines
