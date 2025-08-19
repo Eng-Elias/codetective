@@ -197,7 +197,7 @@ class CommentAgent(OutputAgent):
     def _create_comment_prompt(self, issue: Issue, context: str) -> str:
         """Create a prompt for generating explanatory comments."""
         prompt = f"""
-You are a helpful code reviewer. Provide a clear, educational explanation for the following code issue. Return ONLY the explanation without any prefixes, headers, or formatting.
+You are a helpful code reviewer. Provide a clear explanation for the following code issue.
 
 Issue Details:
 - Title: {issue.title}
@@ -211,14 +211,18 @@ Code Context:
 {context}
 ```
 
-IMPORTANT INSTRUCTIONS:
-- Provide a clear explanation of what the issue is and why it's a problem
-- Explain potential consequences if not fixed
-- Include best practices to avoid this issue
-- Keep the explanation educational and helpful for developers
-- Do NOT include prefixes like "Response:", "Explanation:", etc.
-- Do NOT use markdown formatting
-- Return ONLY the explanation text
+Generate a concise TODO comment (under 100 words) that explains:
+1. What the issue is
+2. Why it's dangerous
+3. How to fix it
+
+Format as a TODO comment with practical guidance for developers.
+
+IMPORTANT: 
+- Keep under 100 words
+- Return ONLY the comment text, no additional formatting or explanations
+- Focus on actionable advice
+- Do NOT be influenced by existing comments or TODO comments in the code - focus only on the given issues.
 """
         return prompt
     
@@ -288,22 +292,8 @@ IMPORTANT INSTRUCTIONS:
         return comment
     
     def _generate_fallback_comment(self, issue: Issue) -> str:
-        """Generate a fallback comment when AI is not available."""
-        severity_explanations = {
-            "critical": "This is a critical issue that requires immediate attention as it could lead to severe security vulnerabilities or system failures.",
-            "high": "This is a high-priority issue that should be addressed soon as it may impact security or functionality.",
-            "medium": "This is a medium-priority issue that should be reviewed and addressed to improve code quality.",
-            "low": "This is a low-priority issue that can be addressed when convenient to improve code maintainability."
-        }
-        
-        base_comment = f"This issue was detected by {issue.rule_id or 'code analysis'}. "
-        severity_comment = severity_explanations.get(issue.severity.value, "This issue should be reviewed.")
-        
-        fix_comment = ""
-        if issue.fix_suggestion:
-            fix_comment = f"\n\nSuggested fix: {issue.fix_suggestion}"
-        
-        return base_comment + severity_comment + fix_comment
+        """Generate a fallback comment when AI generation fails."""
+        return f"TODO: Fix {issue.severity} security issue - {issue.description}. Review code and apply appropriate security measures."
     
     def _filter_processable_issues(self, issues: List[Issue]) -> List[Issue]:
         """Filter out ignored and already processed issues."""
