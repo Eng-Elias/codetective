@@ -51,7 +51,5 @@
 
 ## Configuration Management
 
-- Support `.codetective.yaml` configuration files
 - Environment variable support with `CODETECTIVE_` prefix
-- User preferences stored in home directory
 - Validate configuration on startup

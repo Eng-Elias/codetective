@@ -37,8 +37,6 @@
 - **User Selections**: Cache user choices during GUI sessions
 
 ### Configuration Persistence
-- **User Preferences**: Stored in `~/.codetective/config.yaml`
-- **Project Settings**: Per-project `.codetective.yaml` files
 - **Agent Configuration**: Default settings for each agent type
 - **GUI State**: Remember last used settings and preferences
 
