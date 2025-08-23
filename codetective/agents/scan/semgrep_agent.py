@@ -77,12 +77,11 @@ class SemGrepAgent(ScanAgent):
                 "--config=r/all",
                 "--json",
                 "--metrics=off",
-                "--timeout", "60",
+                "--timeout", self.config.agent_timeout,
                 file_path
             ]
             
-            timeout = min(self.config.agent_timeout, 90)
-            success, stdout, stderr = ProcessUtils.run_command(cmd, timeout=timeout)
+            success, stdout, stderr = ProcessUtils.run_command(cmd, timeout=self.config.agent_timeout)
             
             if not success:
                 print(f"SemGrep failed for {file_path}: {stderr}")
@@ -107,13 +106,12 @@ class SemGrepAgent(ScanAgent):
                 "--config=r/all",
                 "--json",
                 "--metrics=off",
-                "--timeout", "60"
+                "--timeout", self.config.agent_timeout
             ]
             # Add all file paths to the command
             cmd.extend(file_paths)
             
-            timeout = min(self.config.agent_timeout, 90)
-            success, stdout, stderr = ProcessUtils.run_command(cmd, timeout=timeout)
+            success, stdout, stderr = ProcessUtils.run_command(cmd, timeout=self.config.agent_timeout)
             
             if not success:
                 print(f"SemGrep batch scan failed: {stderr}")
@@ -138,13 +136,11 @@ class SemGrepAgent(ScanAgent):
                 "--config=r/all",
                 "--json",
                 "--metrics=off",
-                "--timeout", "60",  # SemGrep internal timeout
+                "--timeout", self.config.agent_timeout,  # SemGrep internal timeout
                 scan_path
             ]
             
-            # Use shorter timeout and set working directory
-            timeout = min(self.config.agent_timeout, 90)  # Max 90 seconds
-            success, stdout, stderr = ProcessUtils.run_command(cmd, timeout=timeout)
+            success, stdout, stderr = ProcessUtils.run_command(cmd, timeout=self.config.agent_timeout)
 
             if not success:
                 raise Exception(f"SemGrep execution failed: {stderr}")

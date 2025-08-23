@@ -8,7 +8,7 @@ ai_review_enabled: true
 
 # Timeout settings (in seconds)
 default_timeout: 300
-agent_timeout: 120
+agent_timeout: 900
 
 # Ollama configuration for AI features
 ollama_base_url: "http://localhost:11434"

@@ -67,7 +67,7 @@ class ScanConfig(BaseModel):
     exclude_patterns: List[str] = Field(default_factory=list, description="File patterns to exclude")
     max_files: Optional[int] = Field(None, description="Maximum number of files to scan")
     parallel_execution: bool = Field(default=False, description="Run agents in parallel")
-    agent_timeout: int = Field(default=120, description="Individual agent timeout")
+    agent_timeout: int = Field(default=900, description="Individual agent timeout")
 
 
 class ScanResult(BaseModel):

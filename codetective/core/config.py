@@ -19,7 +19,7 @@ class Config(BaseModel):
     
     # Timeout settings
     default_timeout: int = Field(default=300, description="Default timeout in seconds")
-    agent_timeout: int = Field(default=120, description="Per-agent timeout in seconds")
+    agent_timeout: int = Field(default=900, description="Per-agent timeout in seconds")
     
     # Ollama configuration
     ollama_base_url: str = Field(default="http://localhost:11434", description="Ollama API base URL")

@@ -2,8 +2,6 @@
 Dynamic AI Review agent using LangChain with autonomous tool use.
 """
 
-import json
-import requests
 from typing import List
 from pathlib import Path
 from langchain.tools import Tool

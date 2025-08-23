@@ -46,10 +46,13 @@ class TrivyAgent(ScanAgent):
                 success, stdout, stderr = ProcessUtils.run_command(cmd, timeout=self.config.agent_timeout)
                 
                 if not success:
+                    if stderr.strip():
+                        print(f"Trivy \"{scan_path}\" scan failed: {stderr}")
+
                     # Trivy might still produce useful output even with non-zero exit
                     if not stdout.strip():
                         continue
-                
+
                 # Parse Trivy JSON output
                 if stdout.strip():
                     trivy_data = json.loads(stdout)
@@ -60,6 +63,7 @@ class TrivyAgent(ScanAgent):
                 # Log parsing error but continue with other paths
                 continue
             except Exception as e:
+                print(f"Trivy \"{scan_path}\" scan failed: {e}")
                 # Log scan error but continue with other paths
                 continue
         
