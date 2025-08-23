@@ -3,7 +3,6 @@ Edit agent for automatically applying code fixes using AI.
 """
 
 import requests
-import shutil
 from typing import List, Dict
 from pathlib import Path
 
@@ -200,7 +199,7 @@ Fixed code:
         }
         
         try:
-            response = requests.post(url, json=payload)
+            response = requests.post(url, json=payload, timeout=self.config.agent_timeout)
             response.raise_for_status()
             
             result = response.json()
@@ -208,7 +207,7 @@ Fixed code:
         except requests.exceptions.ConnectionError as e:
             raise Exception(f"Cannot connect to Ollama server at {self.ollama_url}. Please ensure Ollama is running and accessible.")
         except requests.exceptions.Timeout as e:
-            raise Exception(f"Ollama request timed out after {self.config.agent_timeout * 2} seconds")
+            raise Exception(f"Ollama request timed out after {self.config.agent_timeout} seconds")
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 404:
                 raise Exception(f"Model '{self.model}' not found in Ollama. Please pull the model first: ollama pull {self.model}")
