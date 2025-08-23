@@ -9,6 +9,8 @@ A comprehensive code analysis tool that combines multiple scanning engines (SemG
 - **CLI Interface**: Command-line interface for automation and CI/CD integration
 - **Web GUI**: Modern web interface with NiceGUI
 - **LangGraph Orchestration**: Intelligent agent coordination and workflow management
+- **Smart Comment Generation**: Concise TODO comments under 100 words
+- **Intelligent Issue Filtering**: Removes fixed issues from GUI automatically
 - **Configurable**: Flexible configuration via files and environment variables
 
 ## Installation
@@ -75,7 +77,17 @@ codetective fix codetective_scan_results.json --agents edit
 codetective fix codetective_scan_results.json --agents comment
 ```
 
-### 4. Launch Web GUI
+### 4. Apply Fixes
+
+```bash
+# Apply automatic fixes
+codetective fix codetective_scan_results.json --agents edit
+
+# Add explanatory comments instead
+codetective fix codetective_scan_results.json --agents comment
+```
+
+### 5. Launch Web GUI
 
 ```bash
 # Launch NiceGUI interface (default)
@@ -105,6 +117,8 @@ Execute multi-agent code scanning.
 codetective scan .
 codetective scan src/ tests/ --agents semgrep,trivy --timeout 600
 codetective scan . --output security_scan.json
+# Test with included vulnerable samples
+codetective scan vulnerable_code_samples.py --agents semgrep,trivy
 ```
 
 ### `codetective fix <json_file>`
@@ -112,11 +126,14 @@ Apply automated fixes to identified issues.
 
 **Options:**
 - `-a, --agents`: Fix agents (comment,edit) (default: edit)
+- `--keep-backup`: Keep backup files after fix completion
+- `--selected-issues`: Comma-separated list of issue IDs to fix
 
 **Examples:**
 ```bash
 codetective fix scan_results.json
 codetective fix scan_results.json --agents comment
+codetective fix scan_results.json --keep-backup --selected-issues issue-1,issue-2
 ```
 
 ### `codetective gui`
@@ -140,7 +157,7 @@ ai_review_enabled: true
 
 # Timeout settings
 default_timeout: 300
-agent_timeout: 120
+agent_timeout: 900
 
 # Ollama configuration
 ollama_base_url: "http://localhost:11434"
@@ -149,6 +166,7 @@ ollama_model: "codellama"
 # File handling
 max_file_size: 10485760  # 10MB
 backup_files: true
+keep_backup: false  # Keep backup files after fix completion
 
 # Output configuration
 output_format: "json"
@@ -158,6 +176,10 @@ verbose: false
 gui_host: "localhost"
 gui_port: 7891
 gui_type: "nicegui"
+
+# Fix agent behavior
+comment_max_words: 100  # Maximum words for TODO comments
+ignore_existing_comments: true  # Don't be influenced by existing comments
 ```
 
 ### Environment Variables
@@ -197,9 +219,12 @@ A modern, responsive web interface with better state management and real-time up
 
 ### 3. Fix Application
 - Choose fix strategy (edit or comment)
-- Configure backup options
-- Apply fixes with progress tracking
+- Configure backup options and keep-backup settings
+- Select specific issues to fix or use "Select All"
+- Apply fixes with progress tracking and button state management
 - View fix results and modified files
+- Fixed issues are automatically removed from the GUI
+- Real-time progress updates with disabled button during operations
 
 ## JSON Output Format
 
@@ -239,8 +264,41 @@ Codetective always outputs results in a standardized JSON format:
 
 ### Output Agents
 
-- **Comment Agent**: Generates explanatory comments for issues
+- **Comment Agent**: Generates concise TODO comments (under 100 words) for issues
+  - Handles None/empty line numbers by adding comments at file beginning
+  - Processes multiple issues in same file with proper line number tracking
+  - Ignores existing comments when generating new explanations
 - **Edit Agent**: Automatically applies code fixes
+  - Focuses only on actual security vulnerabilities, not influenced by existing comments
+  - Maintains original code structure and functionality
+
+## Testing Codetective
+
+### Vulnerable Code Samples
+
+The repository includes `vulnerable_code_samples.py` - a comprehensive test file containing intentionally vulnerable code patterns that demonstrate Codetective's detection capabilities:
+
+- **Hardcoded Secrets**: AWS keys, GitHub tokens, API keys, private keys
+- **Injection Vulnerabilities**: SQL injection, command injection
+- **Cryptographic Issues**: Weak hashing (MD5), unverified JWT tokens
+- **Network Security**: SSL verification bypass, unencrypted connections
+- **File Security**: Insecure temp files, overly permissive file permissions
+- **Deserialization**: Unsafe pickle and YAML loading
+
+Use this file to:
+- Test your Codetective installation
+- Verify scanner configurations
+- Demonstrate capabilities to stakeholders
+- Benchmark detection accuracy
+
+```bash
+# Quick test scan
+codetective scan vulnerable_code_samples.py
+
+# Test specific agents
+codetective scan vulnerable_code_samples.py --agents semgrep
+codetective scan vulnerable_code_samples.py --agents trivy
+```
 
 ## Development
 
