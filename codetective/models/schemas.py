@@ -59,15 +59,16 @@ class AgentResult(BaseModel):
 
 class ScanConfig(BaseModel):
     """Configuration for scan operations."""
+    # used in this version
     agents: List[AgentType] = Field(default_factory=lambda: [AgentType.SEMGREP, AgentType.TRIVY])
-    timeout: int = Field(default=300, description="Timeout in seconds")
+    parallel_execution: bool = Field(default=False, description="Run agents in parallel")
     paths: List[str] = Field(default_factory=lambda: ["."], description="Paths to scan")
+    # only store values for now
+    max_files: Optional[int] = Field(None, description="Maximum number of files to scan")
     output_file: Optional[str] = Field(default="codetective_scan_results.json", description="Output JSON file")
+    # for future versions use
     include_patterns: List[str] = Field(default_factory=list, description="File patterns to include")
     exclude_patterns: List[str] = Field(default_factory=list, description="File patterns to exclude")
-    max_files: Optional[int] = Field(None, description="Maximum number of files to scan")
-    parallel_execution: bool = Field(default=False, description="Run agents in parallel")
-    agent_timeout: int = Field(default=900, description="Individual agent timeout")
 
 
 class ScanResult(BaseModel):
@@ -86,9 +87,6 @@ class ScanResult(BaseModel):
 class FixConfig(BaseModel):
     """Configuration for fix operations."""
     agents: List[AgentType] = Field(default=[AgentType.EDIT], description="Fix agents to use")
-    selected_issues: List[str] = Field(default_factory=list, description="Issue IDs to fix")
-    backup_files: bool = Field(default=True, description="Create backup files before fixing")
-    dry_run: bool = Field(default=False, description="Perform dry run without applying changes")
 
 
 class FixResult(BaseModel):

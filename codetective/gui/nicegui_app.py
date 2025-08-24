@@ -3,13 +3,11 @@ NiceGUI application for Codetective - Multi-Agent Code Review Tool.
 """
 
 import asyncio
-import os
 from pathlib import Path
-from typing import List, Dict, Optional
-import time
+from typing import List, Dict
 
-from nicegui import ui, app, run
-from nicegui.events import ValueChangeEventArguments, GenericEventArguments
+from nicegui import ui
+from nicegui.events import ValueChangeEventArguments
 
 try:
     # Try relative imports first (when run as module)
@@ -199,7 +197,7 @@ class CodeDetectiveApp:
                 with ui.column().classes('flex-1'):
                     self.timeout_input = ui.number(
                         'Timeout (seconds)',
-                        value=300,
+                        value=900,
                         min=30,
                         max=1800,
                         step=30
@@ -421,18 +419,14 @@ class CodeDetectiveApp:
             # Create scan configuration
             scan_config = ScanConfig(
                 agents=agents,
-                timeout=int(self.timeout_input.value),
+                parallel_execution=self.use_parallel.value,
                 paths=self.selected_files,
                 max_files=int(self.max_files_input.value) if self.max_files_input.value > 0 else None,
-                parallel_execution=self.use_parallel.value
             )
             
             # Initialize orchestrator
-            config = get_config()
+            config = get_config(scan_config=scan_config, agent_timeout=self.timeout_input.value)
             orchestrator = CodeDetectiveOrchestrator(config)
-            
-            if self.use_parallel.value:
-                orchestrator._parallel_execution = True
                 
             # Update progress
             self.progress_bar.value = 0.25
@@ -693,9 +687,6 @@ class CodeDetectiveApp:
         
         fix_config = FixConfig(
             agents=[agent_type],
-            selected_issues=[issue.id for issue in self.selected_issues],
-            backup_files=self.backup_files.value,
-            dry_run=False
         )
         
         # Show progress inline
@@ -707,8 +698,7 @@ class CodeDetectiveApp:
         
         try:
             # Initialize orchestrator
-            config = get_config()
-            config.keep_backup = self.keep_backup.value
+            config = get_config(fix_config=fix_config, keep_backup=self.keep_backup.value)
             orchestrator = CodeDetectiveOrchestrator(config)
             
             # Prepare scan data for fix operation

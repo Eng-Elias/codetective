@@ -5,7 +5,6 @@ CLI commands implementation for Codetective.
 import json
 import sys
 from pathlib import Path
-from typing import List
 
 import click
 from rich.console import Console
@@ -152,7 +151,7 @@ def info():
               default='semgrep,trivy',
               help='Comma-separated list of agents to run')
 @click.option('-t', '--timeout', 
-              default=300, 
+              default=900, 
               type=int,
               help='Timeout in seconds')
 @click.option('-o', '--output', 
@@ -234,11 +233,10 @@ def scan(paths: tuple, agents: str, timeout: int, output: str, diff_only: bool,
         # Update scan configuration with final paths
         scan_config = ScanConfig(
             agents=agent_list,
-            timeout=timeout,
+            parallel_execution=parallel,
             paths=validated_paths,
             output_file=output if not show_output else None,
             max_files=max_files,
-            parallel_execution=parallel
         )
         
         console.print(f"[bold blue]Starting scan with agents: {', '.join([a.value for a in agent_list])}[/bold blue]")
@@ -248,12 +246,8 @@ def scan(paths: tuple, agents: str, timeout: int, output: str, diff_only: bool,
             console.print(f"Scanning paths: {', '.join(validated_paths)}")
         
         # Initialize orchestrator
-        config = get_config()
+        config = get_config(scan_config=scan_config, agent_timeout=timeout)
         orchestrator = CodeDetectiveOrchestrator(config)
-        
-        # Set parallel execution flag if needed
-        if parallel:
-            orchestrator._parallel_execution = True
         
         # Count total files for progress tracking (git-aware)
         total_files = 0
@@ -381,14 +375,10 @@ def fix(json_file: str, agent: str, keep_backup: bool):
         # Create fix configuration
         fix_config = FixConfig(
             agents=agent_list,
-            selected_issues=[],  # Will be populated from scan results
-            backup_files=True,
-            dry_run=False
         )
         
         # Set keep_backup option in config
-        config = get_config()
-        config.keep_backup = keep_backup
+        config = get_config(fix_config=fix_config, keep_backup=keep_backup)
         
         backup_msg = "(keeping backup files)" if keep_backup else "(deleting backup files after completion)"
         console.print(f"[bold blue]Starting fix with agent: {agent_list[0].value} {backup_msg}[/bold blue]")

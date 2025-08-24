@@ -109,7 +109,7 @@ Execute multi-agent code scanning.
 
 **Options:**
 - `-a, --agents`: Comma-separated agents (semgrep,trivy,ai_review)
-- `-t, --timeout`: Timeout in seconds (default: 300)
+- `-t, --timeout`: Timeout in seconds (default: 900)
 - `-o, --output`: Output JSON file (default: codetective_scan_results.json)
 
 **Examples:**

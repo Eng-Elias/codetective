@@ -2,18 +2,21 @@
 Configuration management for Codetective.
 """
 
-import os
-import yaml
-from pathlib import Path
-from typing import Optional
 from pydantic import BaseModel, Field
+
+from codetective.models.schemas import ScanConfig, FixConfig
 
 
 class Config(BaseModel):
     """Global configuration for Codetective."""
+
+    # Scan Config
+    scan_config: ScanConfig = Field(default_factory=ScanConfig)
+
+    # Fix Config
+    fix_config: FixConfig = Field(default_factory=FixConfig)
     
     # Timeout settings
-    default_timeout: int = Field(default=1200, description="Default timeout in seconds")
     agent_timeout: int = Field(default=900, description="Per-agent timeout in seconds")
     
     # Ollama configuration

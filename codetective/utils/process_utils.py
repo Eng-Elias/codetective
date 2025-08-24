@@ -12,7 +12,7 @@ class ProcessUtils:
     """Utility class for process-related operations."""
     
     @staticmethod
-    def run_command(command: List[str], cwd: str = None, timeout: int = 300) -> Tuple[bool, str, str]:
+    def run_command(command: List[str], cwd: str = None, timeout: int = 900) -> Tuple[bool, str, str]:
         """Run a command and return success status, stdout, and stderr."""
         process = None
         try:
