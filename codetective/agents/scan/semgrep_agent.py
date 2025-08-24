@@ -77,7 +77,7 @@ class SemGrepAgent(ScanAgent):
                 "--config=r/all",
                 "--json",
                 "--metrics=off",
-                "--timeout", self.config.agent_timeout,
+                "--timeout", str(self.config.agent_timeout),
                 file_path
             ]
             
@@ -106,7 +106,7 @@ class SemGrepAgent(ScanAgent):
                 "--config=r/all",
                 "--json",
                 "--metrics=off",
-                "--timeout", self.config.agent_timeout
+                "--timeout", str(self.config.agent_timeout)
             ]
             # Add all file paths to the command
             cmd.extend(file_paths)
@@ -136,7 +136,7 @@ class SemGrepAgent(ScanAgent):
                 "--config=r/all",
                 "--json",
                 "--metrics=off",
-                "--timeout", self.config.agent_timeout,  # SemGrep internal timeout
+                "--timeout", str(self.config.agent_timeout),
                 scan_path
             ]
             
