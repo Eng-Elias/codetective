@@ -71,7 +71,7 @@ class TrivyAgent(ScanAgent):
                 continue
         
         return issues
-    
+
     def _parse_trivy_results(self, trivy_data: dict, scan_path: str) -> List[Issue]:
         """Parse Trivy JSON results into Issue objects."""
         issues = []
@@ -79,26 +79,24 @@ class TrivyAgent(ScanAgent):
         results = trivy_data.get("Results", [])
         
         for result in results:
-            target = result.get("Target", scan_path)
-            
             # Process vulnerabilities
             vulnerabilities = result.get("Vulnerabilities", [])
             for vuln in vulnerabilities:
-                issue = self._create_vulnerability_issue(vuln, target)
+                issue = self._create_vulnerability_issue(vuln, scan_path)
                 if issue:
                     issues.append(issue)
             
             # Process secrets
             secrets = result.get("Secrets", [])
             for secret in secrets:
-                issue = self._create_secret_issue(secret, target)
+                issue = self._create_secret_issue(secret, scan_path)
                 if issue:
                     issues.append(issue)
             
             # Process misconfigurations
             misconfigs = result.get("Misconfigurations", [])
             for misconfig in misconfigs:
-                issue = self._create_misconfig_issue(misconfig, target)
+                issue = self._create_misconfig_issue(misconfig, scan_path)
                 if issue:
                     issues.append(issue)
         
