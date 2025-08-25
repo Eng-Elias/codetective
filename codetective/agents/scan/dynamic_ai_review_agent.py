@@ -137,9 +137,7 @@ class DynamicAIReviewAgent(ScanAgent):
         
         for file_path in supported_files:
             try:
-                print(f"Reviewing file: {file_path}")
                 file_issues = self._review_file_dynamic(file_path)
-                print(f"Found {len(file_issues)} issues in {file_path}")
                 issues.extend(file_issues)
             except Exception as e:
                 print(f"Error reviewing {file_path}: {e}")
