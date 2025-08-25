@@ -27,9 +27,12 @@ class TrivyAgent(ScanAgent):
     def scan_files(self, files: List[str]) -> List[Issue]:
         """Scan files using Trivy."""
         issues = []
+
+        paths_to_scan = []
         
-        # Trivy works best on directories and specific file types
-        paths_to_scan = self._prepare_scan_paths(files)
+        for file_path in files:
+            path = Path(file_path)
+            paths_to_scan.append(str(path))
         
         for scan_path in paths_to_scan:
             try:
@@ -68,27 +71,6 @@ class TrivyAgent(ScanAgent):
                 continue
         
         return issues
-    
-    def _prepare_scan_paths(self, files: List[str]) -> List[str]:
-        """Prepare paths for Trivy scanning."""
-        paths_to_scan = []
-        processed_dirs = set()
-        
-        for file_path in files:
-            path = Path(file_path)
-            
-            if path.is_dir():
-                if str(path) not in processed_dirs:
-                    paths_to_scan.append(str(path))
-                    processed_dirs.add(str(path))
-            else:
-                # For individual files, scan the parent directory if not already processed
-                parent_dir = path.parent
-                if str(parent_dir) not in processed_dirs:
-                    paths_to_scan.append(str(parent_dir))
-                    processed_dirs.add(str(parent_dir))
-        
-        return paths_to_scan
     
     def _parse_trivy_results(self, trivy_data: dict, scan_path: str) -> List[Issue]:
         """Parse Trivy JSON results into Issue objects."""
