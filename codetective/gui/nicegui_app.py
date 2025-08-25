@@ -262,11 +262,11 @@ class CodeDetectiveApp:
                 
             else:  # Full Project Scan
                 if GitUtils.is_git_repo(self.project_path):
-                    ui.label('🔍 Git repository detected - scanning git-tracked files only').classes('text-info')
+                    ui.label('🔍 Git repository detected - scanning git-tracked + new untracked files').classes('text-info')
                     try:
-                        code_files = GitUtils.get_code_files(self.project_path)
-                        self.selected_files = code_files
-                        ui.label(f'Found {len(code_files)} git-tracked code files').classes('text-positive')
+                        all_files = GitUtils.get_git_tracked_and_new_files(self.project_path)
+                        self.selected_files = all_files
+                        ui.label(f'Found {len(all_files)} selectable code files (tracked + new untracked)').classes('text-positive')
                     except Exception as e:
                         ui.label(f'Error getting git files: {e}').classes('text-negative')
                         self.selected_files = [self.project_path]
@@ -278,13 +278,13 @@ class CodeDetectiveApp:
         """Show file tree selector for custom file selection."""
         try:
             if GitUtils.is_git_repo(self.project_path):
-                files = GitUtils.get_code_files(self.project_path)
-                ui.label('🔍 Showing git-tracked files:').classes('text-caption q-mb-sm')
+                files = GitUtils.get_git_tracked_and_new_files(self.project_path)
+                ui.label('🔍 Showing git-tracked files + new untracked files (respecting .gitignore):').classes('text-caption q-mb-sm')
             else:
                 files = FileUtils.get_file_list([self.project_path], 
                     include_patterns=['*.py', '*.js', '*.ts', '*.jsx', '*.tsx', '*.java', '*.c', '*.cpp', '*.h', '*.hpp', '*.cs', '*.php', '*.rb', '*.go', '*.rs', '*.swift', '*.kt', '*.scala', '*.sh'],
                     respect_gitignore=True)
-                ui.label('📁 Showing all code files:').classes('text-caption q-mb-sm')
+                ui.label('📁 Showing all code files (respecting .gitignore):').classes('text-caption q-mb-sm')
             
             # Build tree structure for ui.tree
             tree_nodes = self.build_tree_structure(files)

@@ -172,6 +172,28 @@ class GitUtils:
         return absolute_files
     
     @staticmethod
+    def get_git_tracked_and_new_files(repo_path: str) -> List[str]:
+        """Get all tracked and new files in the repository."""
+        try:
+            result = subprocess.run(
+                ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
+                cwd=repo_path,
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+
+            result_files = []
+            
+            if result.returncode == 0:
+                result_files = [f.strip() for f in result.stdout.split('\n') if f.strip()]
+            
+            return GitUtils._convert_to_absolute_paths(result_files, repo_path)
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+            pass
+        return []
+
+    @staticmethod
     def get_code_files(repo_path: str) -> List[str]:
         """Get all tracked code files in the repository."""
         code_extensions = [
