@@ -90,7 +90,7 @@ class EditAgent(OutputAgent):
         return issues_by_file
     
     def _fix_file_issues(self, file_path: str, issues: List[Issue]) -> List[Issue]:
-        """Fix all issues in a single file."""
+        """Fix all issues in a single file, processing in batches if more than 3 issues."""
         if not Path(file_path).exists():
             error_msg = f"File not found: {file_path}"
             print(error_msg)
@@ -112,27 +112,83 @@ class EditAgent(OutputAgent):
                 print(error_msg)
                 return [self._mark_issue_failed(issue, "Cannot read file") for issue in issues]
             
-            # Generate fixed content
-            fixed_content = self._generate_fixed_content(file_path, original_content, issues)
-
-            if fixed_content and fixed_content != original_content:
-                # Write fixed content back to file
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write(fixed_content)
-                
-                print(f"Applied fixes to: {file_path}")
-                # Mark issues as fixed
-                return [self._mark_issue_fixed(issue) for issue in issues]
+            # Process issues in batches to avoid LLM token limits
+            if len(issues) > 3:
+                return self._fix_issues_in_batches(file_path, original_content, issues)
             else:
-                # No changes made
-                error_msg = "No fix generated or content unchanged"
-                print(f"Warning: {error_msg} for {file_path}")
-                return [self._mark_issue_failed(issue, "No fix generated") for issue in issues]
+                return self._fix_issues_single_batch(file_path, original_content, issues)
         
         except Exception as e:
             error_msg = f"Exception during fix: {str(e)}"
             print(f"Error fixing {file_path}: {error_msg}")
             return [self._mark_issue_failed(issue, str(e)) for issue in issues]
+    
+    def _fix_issues_in_batches(self, file_path: str, original_content: str, issues: List[Issue]) -> List[Issue]:
+        """Fix issues in batches of 3 to avoid LLM token limits."""
+        batch_size = 3
+        all_fixed_issues = []
+        current_content = original_content
+        
+        print(f"Processing {len(issues)} issues in batches of {batch_size} for {file_path}")
+        
+        # Process issues in batches
+        for i in range(0, len(issues), batch_size):
+            batch_issues = issues[i:i + batch_size]
+            batch_num = (i // batch_size) + 1
+            total_batches = (len(issues) + batch_size - 1) // batch_size
+            
+            print(f"Processing batch {batch_num}/{total_batches} ({len(batch_issues)} issues)")
+            
+            try:
+                # Generate fixed content for this batch
+                fixed_content = self._generate_fixed_content(file_path, current_content, batch_issues)
+                
+                if fixed_content and fixed_content != current_content:
+                    # Update current content for next batch
+                    current_content = fixed_content
+                    # Mark batch issues as fixed
+                    batch_fixed = [self._mark_issue_fixed(issue) for issue in batch_issues]
+                    all_fixed_issues.extend(batch_fixed)
+                    print(f"Batch {batch_num} applied successfully")
+                else:
+                    # Mark batch issues as failed
+                    batch_failed = [self._mark_issue_failed(issue, f"No fix generated for batch {batch_num}") for issue in batch_issues]
+                    all_fixed_issues.extend(batch_failed)
+                    print(f"Batch {batch_num} failed: No fix generated")
+            
+            except Exception as e:
+                # Mark batch issues as failed
+                error_msg = f"Batch {batch_num} failed: {str(e)}"
+                batch_failed = [self._mark_issue_failed(issue, error_msg) for issue in batch_issues]
+                all_fixed_issues.extend(batch_failed)
+                print(error_msg)
+        
+        # Write final content if any changes were made
+        if current_content != original_content:
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(current_content)
+            print(f"Applied all batch fixes to: {file_path}")
+        
+        return all_fixed_issues
+    
+    def _fix_issues_single_batch(self, file_path: str, original_content: str, issues: List[Issue]) -> List[Issue]:
+        """Fix issues in a single batch (3 or fewer issues)."""
+        # Generate fixed content
+        fixed_content = self._generate_fixed_content(file_path, original_content, issues)
+
+        if fixed_content and fixed_content != original_content:
+            # Write fixed content back to file
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(fixed_content)
+            
+            print(f"Applied fixes to: {file_path}")
+            # Mark issues as fixed
+            return [self._mark_issue_fixed(issue) for issue in issues]
+        else:
+            # No changes made
+            error_msg = "No fix generated or content unchanged"
+            print(f"Warning: {error_msg} for {file_path}")
+            return [self._mark_issue_failed(issue, "No fix generated") for issue in issues]
     
     def _generate_fixed_content(self, file_path: str, content: str, issues: List[Issue]) -> str:
         """Generate fixed content using AI."""
