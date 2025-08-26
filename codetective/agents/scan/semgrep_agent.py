@@ -46,6 +46,8 @@ class SemGrepAgent(ScanAgent):
                 individual_files.append(path)
             elif path_obj.is_dir():
                 directories.append(path)
+            elif path_obj.exists():
+                print(f"Warning: Path exists but is neither file nor directory: {path}")
             else:
                 print(f"Warning: Path does not exist: {path}")
 
@@ -157,28 +159,6 @@ class SemGrepAgent(ScanAgent):
         
         return issues
     
-    def _prepare_scan_paths(self, files: List[str]) -> List[str]:
-        """Prepare paths for SemGrep scanning to avoid filename length issues."""
-        scan_paths = []
-        processed_dirs = set()
-        
-        for file_path in files:
-            path = Path(file_path)
-            
-            if path.is_dir():
-                # Use directory directly
-                if str(path) not in processed_dirs:
-                    scan_paths.append(str(path))
-                    processed_dirs.add(str(path))
-            else:
-                # For individual files, use the parent directory
-                parent_dir = path.parent
-                if str(parent_dir) not in processed_dirs:
-                    scan_paths.append(str(parent_dir))
-                    processed_dirs.add(str(parent_dir))
-        
-        return scan_paths
-    
     def _parse_semgrep_results(self, semgrep_data: dict) -> List[Issue]:
         """Parse SemGrep JSON results into Issue objects."""
         issues = []
@@ -217,6 +197,7 @@ class SemGrepAgent(ScanAgent):
             
             except Exception as e:
                 # Log parsing error but continue with other results
+                print(f"Error parsing SemGrep result: {e}")
                 continue
         
         return issues

@@ -27,12 +27,9 @@ class TrivyAgent(ScanAgent):
     def scan_files(self, files: List[str]) -> List[Issue]:
         """Scan files using Trivy."""
         issues = []
-
-        paths_to_scan = []
         
-        for file_path in files:
-            path = Path(file_path)
-            paths_to_scan.append(str(path))
+        # Convert to Path objects and get unique paths
+        paths_to_scan = list(set(str(Path(file_path)) for file_path in files))
         
         for scan_path in paths_to_scan:
             try:
@@ -50,8 +47,7 @@ class TrivyAgent(ScanAgent):
                 
                 if not success:
                     if stderr.strip():
-                        print(f"Trivy \"{scan_path}\" scan failed: {stderr}")
-
+                        print(f"Trivy '{scan_path}' scan failed: {stderr}")
                     # Trivy might still produce useful output even with non-zero exit
                     if not stdout.strip():
                         continue
@@ -62,12 +58,12 @@ class TrivyAgent(ScanAgent):
                     path_issues = self._parse_trivy_results(trivy_data, scan_path)
                     issues.extend(path_issues)
             
-            except json.JSONDecodeError as e:
+            except json.JSONDecodeError:
                 # Log parsing error but continue with other paths
+                print(f"Failed to parse Trivy JSON output for {scan_path}")
                 continue
             except Exception as e:
-                print(f"Trivy \"{scan_path}\" scan failed: {e}")
-                # Log scan error but continue with other paths
+                print(f"Trivy '{scan_path}' scan failed: {e}")
                 continue
         
         return issues
