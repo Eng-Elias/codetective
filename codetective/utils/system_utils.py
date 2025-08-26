@@ -48,10 +48,10 @@ class SystemUtils:
         return False, None
 
     @staticmethod
-    def _check_ollama_api() -> Tuple[bool, Optional[str]]:
+    def _check_ollama_api(ollama_base_url: str = "http://localhost:11434") -> Tuple[bool, Optional[str]]:
         """Check Ollama via HTTP API."""
         try:
-            response = requests.get("http://localhost:11434/api/version", timeout=3)
+            response = requests.get(f"{ollama_base_url}/api/version", timeout=3)
             if response.status_code == 200:
                 version_info = response.json()
                 return True, version_info.get("version", "running")
