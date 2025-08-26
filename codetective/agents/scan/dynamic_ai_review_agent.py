@@ -77,7 +77,7 @@ class DynamicAIReviewAgent(ScanAgent):
     def _search_tool(self, query: str) -> str:
         """Search tool for the agent."""
         try:
-            results = self.search_tool.search(query, search_type="text")
+            results = self.search_tool.search(query)
             if not results:
                 return "No search results found."
             
@@ -114,7 +114,7 @@ class DynamicAIReviewAgent(ScanAgent):
         try:
             # Add security-specific keywords
             security_query = f"security vulnerability {query} CVE"
-            return self.search_tool.search_security(security_query)
+            return self.search_tool.search(security_query)
         except Exception as e:
             return f"Security search failed: {e}"
     

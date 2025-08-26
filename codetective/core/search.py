@@ -8,8 +8,15 @@ from typing import List, Dict, Any, Optional
 from ddgs import DDGS
 from bs4 import BeautifulSoup
 import time
+from enum import Enum
 
 logger = logging.getLogger(__name__)
+
+
+class SearchType(Enum):
+    TEXT = "text"
+    NEWS = "news"
+    IMAGES = "images"
 
 
 class SearchTool:
@@ -28,20 +35,20 @@ class SearchTool:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         })
     
-    def search(self, query: str, search_type: str = "text") -> List[Dict[str, Any]]:
+    def search(self, query: str, search_type: SearchType = SearchType.TEXT) -> List[Dict[str, Any]]:
         """Perform a search query.
         
         Args:
             query: Search query string
-            search_type: Type of search ("text", "news", "images")
+            search_type: Type of search (SearchType.TEXT, SearchType.NEWS, SearchType.IMAGES)
             
         Returns:
             List of search results with title, body, and href
         """
         try:
-            if search_type == "text":
+            if search_type == SearchType.TEXT:
                 results = list(self.ddgs.text(query, max_results=self.max_results))
-            elif search_type == "news":
+            elif search_type == SearchType.NEWS:
                 results = list(self.ddgs.news(query, max_results=self.max_results))
             else:
                 results = list(self.ddgs.text(query, max_results=self.max_results))
@@ -111,7 +118,7 @@ class SearchTool:
         
         return self.search(query)
     
-    def fetch_url_content(self, url: str, max_length: int = 5000) -> Optional[str]:
+    def fetch_url_content(self, url: str, max_length: int = 10000) -> Optional[str]:
         """Fetch and extract text content from a URL.
         
         Args:
@@ -184,23 +191,3 @@ class SearchTool:
             time.sleep(0.5)
         
         return enhanced_results
-
-
-def create_search_tool(config: Optional[Dict[str, Any]] = None) -> Optional[SearchTool]:
-    """Create a search tool instance based on configuration.
-    
-    Args:
-        config: Configuration dictionary
-        
-    Returns:
-        SearchTool instance if search is enabled, None otherwise
-    """
-    if not config:
-        return SearchTool()
-    
-    search_enabled = config.get("search_enabled", True)
-    if not search_enabled:
-        return None
-    
-    max_results = config.get("search_max_results", 5)
-    return SearchTool(max_results=max_results)

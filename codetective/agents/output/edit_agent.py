@@ -8,7 +8,6 @@ from pathlib import Path
 
 from codetective.models.schemas import AgentType, Issue, IssueStatus
 from codetective.utils import SystemUtils, FileUtils
-from codetective.core.search import create_search_tool
 from codetective.agents.base import OutputAgent
 from codetective.utils.system_utils import RequiredTools
 
@@ -22,8 +21,7 @@ class EditAgent(OutputAgent):
         self.ollama_url = config.ollama_base_url
         self.model = config.ollama_model or "qwen3:4b"  # Default to qwen3:4b
         self.backup_files = config.backup_files
-        self.keep_backup = getattr(config, 'keep_backup', False)  # New option to keep backup files
-        self.search_tool = create_search_tool(config.__dict__ if hasattr(config, '__dict__') else {})
+        self.keep_backup = config.keep_backup
         self.backup_files_created = []  # Track backup files for cleanup
     
     def is_available(self) -> bool:

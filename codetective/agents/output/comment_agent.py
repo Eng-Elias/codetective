@@ -8,7 +8,6 @@ from pathlib import Path
 
 from codetective.models.schemas import AgentType, Issue, IssueStatus
 from codetective.utils import SystemUtils
-from codetective.core.search import create_search_tool
 from codetective.agents.base import OutputAgent
 from codetective.utils.system_utils import RequiredTools
 
@@ -21,10 +20,9 @@ class CommentAgent(OutputAgent):
         self.agent_type = AgentType.COMMENT
         self.ollama_url = config.ollama_base_url
         self.model = config.ollama_model or "qwen3:4b"  # Default to qwen3:4b
-        self.config = config  # Store config reference for backup settings
-        self.keep_backup = getattr(config, 'keep_backup', False)  # New option to keep backup files
+        self.config = config
+        self.keep_backup = config.keep_backup
         self.backup_files_created = []  # Track backup files for cleanup
-        self.search_tool = create_search_tool(config.__dict__ if hasattr(config, '__dict__') else {})
     
     def is_available(self) -> bool:
         """Check if Ollama is available for comment generation."""
@@ -93,7 +91,7 @@ class CommentAgent(OutputAgent):
         try:
             # Create backup if enabled
             backup_path = None
-            if getattr(self.config, 'backup_files', True):
+            if self.config.backup_files:
                 from codetective.utils import FileUtils
                 backup_path = FileUtils.create_backup(file_path)
                 if backup_path:
