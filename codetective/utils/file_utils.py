@@ -20,10 +20,10 @@ class FileUtils:
             path = Path(path_str).resolve()
             
             if not path.exists():
-                raise FileNotFoundError(f"Path does not exist: {path}")
+                continue
             
             if not (path.is_file() or path.is_dir()):
-                raise ValueError(f"Path is neither a file nor directory: {path}")
+                continue
             
             validated_paths.append(str(path))
         

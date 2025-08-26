@@ -9,6 +9,7 @@ from pathlib import Path
 
 from codetective.models.schemas import AgentResult, AgentType, Issue
 from codetective.core.config import Config
+from codetective.utils.file_utils import FileUtils
 
 
 class BaseAgent(ABC):
@@ -34,50 +35,44 @@ class BaseAgent(ABC):
         """Mark the start of execution for timing."""
         self._execution_start_time = time.time()
     
-    def _get_execution_time(self) -> float:
-        """Get the execution time since start."""
-        if self._execution_start_time is None:
-            return 0.0
-        return time.time() - self._execution_start_time
-    
     def _create_result(self, success: bool, issues: List[Issue] = None, 
                       error_message: str = None, metadata: Dict[str, Any] = None) -> AgentResult:
         """Create an AgentResult with timing information."""
+        execution_time = time.time() - self._execution_start_time if self._execution_start_time else 0.0
+
         return AgentResult(
             agent_type=self.agent_type,
             success=success,
             issues=issues or [],
-            execution_time=self._get_execution_time(),
+            execution_time=execution_time,
             error_message=error_message,
             metadata=metadata or {}
         )
-    
-    def _validate_paths(self, paths: List[str]) -> List[str]:
-        """Validate and filter paths that exist."""
-        valid_paths = []
-        for path_str in paths:
-            path = Path(path_str)
-            if path.exists():
-                valid_paths.append(str(path))
-        return valid_paths
     
     def _get_supported_files(self, paths: List[str], extensions: List[str] = None) -> List[str]:
         """Get list of supported files from paths."""
         supported_files = []
         
+        def _is_supported_file(file_path: Path) -> bool:
+            if extensions and file_path.suffix.lower() not in extensions:
+                return False
+            
+            if self.config.max_file_size and file_path.stat().st_size > self.config.max_file_size:
+                return False
+
+            return True
+        
         for path_str in paths:
             path = Path(path_str)
             
             if path.is_file():
-                if not extensions or path.suffix.lower() in extensions:
+                if _is_supported_file(path):
                     supported_files.append(str(path))
             elif path.is_dir():
                 for file_path in path.rglob("*"):
                     if file_path.is_file():
-                        if not extensions or file_path.suffix.lower() in extensions:
-                            # Skip files that are too large
-                            if file_path.stat().st_size <= self.config.max_file_size:
-                                supported_files.append(str(file_path))
+                        if _is_supported_file(file_path):
+                            supported_files.append(str(file_path))
         
         return supported_files
 
@@ -101,21 +96,21 @@ class ScanAgent(BaseAgent):
                     error_message=f"{self.agent_type.value} is not available"
                 )
             
-            valid_paths = self._validate_paths(paths)
-            if not valid_paths:
+            validated_paths = FileUtils.validate_paths(paths)
+            if not validated_paths:
                 return self._create_result(
                     success=False,
                     error_message="No valid paths provided"
                 )
             
-            issues = self.scan_files(valid_paths)
+            issues = self.scan_files(validated_paths)
             
             return self._create_result(
                 success=True,
                 issues=issues,
                 metadata={
-                    "scanned_paths": valid_paths,
-                    "files_processed": len(self._get_supported_files(valid_paths))
+                    "scanned_paths": validated_paths,
+                    "files_processed": len(self._get_supported_files(validated_paths))
                 }
             )
         
