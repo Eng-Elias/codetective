@@ -9,6 +9,7 @@ from codetective.models.schemas import AgentType, Issue, IssueStatus
 from codetective.utils import FileUtils
 from codetective.agents.base import OutputAgent
 from codetective.agents.ai_base import AIAgent
+from codetective.utils.prompt_builder import PromptBuilder
 
 
 class EditAgent(OutputAgent, AIAgent):
@@ -207,30 +208,31 @@ class EditAgent(OutputAgent, AIAgent):
         
         issues_text = "\n".join(issues_summary)
         
-        prompt = f"""
-You are an expert code fixer. Fix the following issues in the code file and return ONLY the complete fixed code without any explanations, markdown formatting, or additional text.
-
-File: {file_path}
+        input_data = f"""File: {file_path}
 
 Issues to fix:
 {issues_text}
 
 Original code:
-{content}
-
-IMPORTANT INSTRUCTIONS:
-- Return ONLY the complete fixed code
-- Do NOT include any explanations, comments about the fixes, or markdown formatting before or after the code
-- Do NOT wrap the code in ``` blocks
-- Do NOT add any text before or after the code
-- Preserve the original file structure and formatting
-- Make minimal changes to fix only the identified issues
-- Ensure the code is syntactically correct and functional
-- Do NOT be influenced by existing comments or TODO comments in the code - focus only on the given issues.
-
-Fixed code:
-"""
-        return prompt
+{content}"""
+        
+        config = {
+            "role": "an expert code fixer",
+            "instruction": "Fix the identified issues in the code file and return ONLY the complete fixed code.",
+            "output_constraints": [
+                "Return ONLY the complete fixed code",
+                "Do NOT include any explanations, comments about the fixes, or markdown formatting before or after the code",
+                "Do NOT wrap the code in ``` blocks",
+                "Do NOT add any text before or after the code",
+                "Preserve the original file structure and formatting",
+                "Make minimal changes to fix only the identified issues",
+                "Ensure the code is syntactically correct and functional",
+                "Do NOT be influenced by existing comments or TODO comments in the code - focus only on the given issues"
+            ],
+            "output_format": "Complete fixed file code without any additional formatting or explanations"
+        }
+        
+        return PromptBuilder.build_prompt_from_config(config, input_data)
     
     
     def _extract_fixed_code(self, response: str, original_content: str) -> str:

@@ -14,6 +14,7 @@ from codetective.core.search import SearchTool
 from codetective.agents.base import ScanAgent
 from codetective.agents.ai_base import AIAgent
 from codetective.utils.system_utils import RequiredTools
+from codetective.utils.prompt_builder import PromptBuilder
 
 
 class DynamicAIReviewAgent(ScanAgent, AIAgent):
@@ -151,28 +152,35 @@ class DynamicAIReviewAgent(ScanAgent, AIAgent):
         file_extension = Path(file_path).suffix
         language = self._detect_language(file_extension)
         
-        prompt = f"""
-Analyze this {language} code file for security issues and code quality problems.
-
-File: {file_path}
+        input_data = f"""File: {file_path}
+Language: {language}
 Code:
 ```{file_extension[1:] if file_extension else 'text'}
 {content}
-```
-
-Provide a concise analysis in exactly this format (no thinking tags, no extra text):
-
-SECURITY ISSUES:
-- [Issue description with line number if applicable]
-
-CODE QUALITY:
-- [Quality issue description]
-
-RECOMMENDATIONS:
-- [Specific actionable fixes]
-
-Keep response under 500 words and focus on the most critical issues only.
-"""
+```"""
+        
+        config = {
+            "role": "an expert code security reviewer",
+            "instruction": f"Analyze this {language} code file for security issues and code quality problems.",
+            "output_constraints": [
+                "Keep response under 500 words",
+                "Focus on the most critical issues only",
+                "No thinking tags or extra text",
+                "Provide specific line numbers when applicable"
+            ],
+            "output_format": [
+                "SECURITY ISSUES:",
+                "- [Issue description with line number if applicable]",
+                "",
+                "CODE QUALITY:",
+                "- [Quality issue description]",
+                "",
+                "RECOMMENDATIONS:",
+                "- [Specific actionable fixes]"
+            ]
+        }
+        
+        prompt = PromptBuilder.build_prompt_from_config(config, input_data)
         
         try:
             if self.supports_tools and self.agent:

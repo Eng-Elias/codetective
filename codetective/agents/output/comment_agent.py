@@ -8,6 +8,7 @@ from pathlib import Path
 from codetective.models.schemas import AgentType, Issue, IssueStatus
 from codetective.agents.base import OutputAgent
 from codetective.agents.ai_base import AIAgent
+from codetective.utils.prompt_builder import PromptBuilder
 
 
 class CommentAgent(OutputAgent, AIAgent):
@@ -189,35 +190,31 @@ class CommentAgent(OutputAgent, AIAgent):
     
     def _create_comment_prompt(self, issue: Issue, context: str) -> str:
         """Create a prompt for generating explanatory comments."""
-        prompt = f"""
-You are a helpful code reviewer. Provide a clear explanation for the following code issue.
-
-Issue Details:
-- Title: {issue.title}
-- Description: {issue.description}
-- Severity: {issue.severity.value if issue.severity else 'N/A'}
-- File: {issue.file_path}
-- Line: {issue.line_number or 'N/A'}
+        issue_details = f"""Title: {issue.title}
+Description: {issue.description}
+Severity: {issue.severity.value if issue.severity else 'N/A'}
+File: {issue.file_path}
+Line: {issue.line_number or 'N/A'}"""
+        
+        input_data = f"""Issue Details:
+{issue_details}
 
 Code Context:
-```
-{context}
-```
-
-Generate a concise TODO comment (under 100 words) that explains:
-1. What the issue is
-2. Why it's dangerous
-3. How to fix it
-
-Format as a TODO comment with practical guidance for developers.
-
-IMPORTANT: 
-- Keep under 100 words
-- Return ONLY the comment text, no additional formatting or explanations
-- Focus on actionable advice
-- Do NOT be influenced by existing comments or TODO comments in the code - focus only on the given issues.
-"""
-        return prompt
+{context}"""
+        
+        config = {
+            "role": "a helpful code reviewer",
+            "instruction": "Generate a concise TODO comment (under 100 words) that explains what the issue is, why it's dangerous, and how to fix it.",
+            "output_constraints": [
+                "Keep under 100 words",
+                "Return ONLY the comment text, no additional formatting or explanations",
+                "Focus on actionable advice",
+                "Do NOT be influenced by existing comments or TODO comments in the code - focus only on the given issues"
+            ],
+            "output_format": "A TODO comment with practical guidance for developers"
+        }
+        
+        return PromptBuilder.build_prompt_from_config(config, input_data)
     
     
     def _extract_comment(self, response: str) -> str:

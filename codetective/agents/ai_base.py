@@ -2,7 +2,6 @@
 Base class for AI-powered agents using ChatOllama.
 """
 
-from typing import Optional
 from langchain_ollama import ChatOllama
 from langchain.schema import HumanMessage
 
