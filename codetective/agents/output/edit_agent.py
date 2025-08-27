@@ -2,32 +2,27 @@
 Edit agent for automatically applying code fixes using AI.
 """
 
-import requests
 from typing import List, Dict
 from pathlib import Path
 
 from codetective.models.schemas import AgentType, Issue, IssueStatus
-from codetective.utils import SystemUtils, FileUtils
+from codetective.utils import FileUtils
 from codetective.agents.base import OutputAgent
-from codetective.utils.system_utils import RequiredTools
+from codetective.agents.ai_base import AIAgent
 
 
-class EditAgent(OutputAgent):
+class EditAgent(OutputAgent, AIAgent):
     """Agent for automatically applying code fixes."""
     
     def __init__(self, config):
-        super().__init__(config)
+        OutputAgent.__init__(self, config)
+        AIAgent.__init__(self, config)
         self.agent_type = AgentType.EDIT
-        self.ollama_url = config.ollama_base_url
-        self.model = config.ollama_model or "qwen3:4b"  # Default to qwen3:4b
-        self.backup_files = config.backup_files
-        self.keep_backup = config.keep_backup
         self.backup_files_created = []  # Track backup files for cleanup
     
     def is_available(self) -> bool:
         """Check if Ollama is available for edit generation."""
-        available, _ = SystemUtils.check_tool_availability(RequiredTools.OLLAMA)
-        return available
+        return self.is_ai_available()
     
     def process_issues(self, issues: List[Issue], **kwargs) -> List[Issue]:
         """Process issues by applying automatic fixes."""
@@ -70,7 +65,7 @@ class EditAgent(OutputAgent):
                 processed_issues.append(issue)
         
         # Clean up backup files if not keeping them
-        if not self.keep_backup:
+        if not self.config.keep_backup:
             self._cleanup_backup_files()
         
         return processed_issues
@@ -97,7 +92,7 @@ class EditAgent(OutputAgent):
         try:
             # Create backup if enabled
             backup_path = None
-            if self.backup_files:
+            if self.config.backup_files:
                 backup_path = FileUtils.create_backup(file_path)
                 if backup_path:
                     self.backup_files_created.append(backup_path)
@@ -193,7 +188,7 @@ class EditAgent(OutputAgent):
         prompt = self._create_fix_prompt(file_path, content, issues)
         
         try:
-            response = self._call_ollama(prompt)
+            response = self.call_ai(prompt, temperature=0.1)
             return self._extract_fixed_code(response, content)
         except Exception:
             return ""
@@ -237,46 +232,14 @@ Fixed code:
 """
         return prompt
     
-    def _call_ollama(self, prompt: str) -> str:
-        """Call Ollama API for code fixing."""
-        url = f"{self.ollama_url}/api/generate"
-        
-        payload = {
-            "model": self.model,
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "temperature": 0.1,  # Low temperature for consistent fixes
-                "top_p": 0.9,
-                "num_predict": -1  # Infinite length for responses
-            }
-        }
-        
-        try:
-            response = requests.post(url, json=payload, timeout=self.config.agent_timeout)
-            response.raise_for_status()
-            
-            result = response.json()
-            return result.get("response", "")
-        except requests.exceptions.ConnectionError as e:
-            raise Exception(f"Cannot connect to Ollama server at {self.ollama_url}. Please ensure Ollama is running and accessible.")
-        except requests.exceptions.Timeout as e:
-            raise Exception(f"Ollama request timed out after {self.config.agent_timeout} seconds")
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 404:
-                raise Exception(f"Model '{self.model}' not found in Ollama. Please pull the model first: ollama pull {self.model}")
-            else:
-                raise Exception(f"Ollama API error: {e.response.status_code} - {e.response.text}")
-        except Exception as e:
-            raise Exception(f"Unexpected error calling Ollama: {str(e)}")
     
     def _extract_fixed_code(self, response: str, original_content: str) -> str:
         """Extract fixed code from AI response."""
         if not response or not response.strip():
             return ""
         
-        # Remove thinking content for qwen3:4b model
-        cleaned_response = self._remove_thinking_content(response)
+        # Clean response using base class method
+        cleaned_response = self.clean_ai_response(response)
         
         # Try multiple extraction methods
         fixed_content = self._try_extract_methods(cleaned_response, original_content)
@@ -289,12 +252,6 @@ Fixed code:
         
         return ""
     
-    def _remove_thinking_content(self, response: str) -> str:
-        """Remove thinking content between <think></think> tags."""
-        import re
-        # Remove thinking tags and their content
-        cleaned = re.sub(r'<think>.*?</think>', '', response, flags=re.DOTALL | re.IGNORECASE)
-        return cleaned.strip()
     
     def _try_extract_methods(self, response: str, original_content: str) -> str:
         """Try multiple methods to extract code from response."""

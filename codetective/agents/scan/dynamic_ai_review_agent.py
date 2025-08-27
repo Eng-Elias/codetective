@@ -12,24 +12,17 @@ from codetective.models.schemas import AgentType, Issue
 from codetective.utils import SystemUtils, FileUtils
 from codetective.core.search import SearchTool
 from codetective.agents.base import ScanAgent
+from codetective.agents.ai_base import AIAgent
 from codetective.utils.system_utils import RequiredTools
 
 
-class DynamicAIReviewAgent(ScanAgent):
+class DynamicAIReviewAgent(ScanAgent, AIAgent):
     """Dynamic AI Review agent with autonomous tool use."""
     
     def __init__(self, config):
-        super().__init__(config)
+        ScanAgent.__init__(self, config)
+        AIAgent.__init__(self, config)
         self.agent_type = AgentType.AI_REVIEW
-        self.ollama_url = config.ollama_base_url
-        self.model = config.ollama_model or "qwen3:4b"
-        
-        # Initialize LangChain components
-        self.llm = ChatOllama(
-            base_url=self.ollama_url,
-            model=self.model,
-            temperature=0.1
-        )
         self.search_tool = SearchTool()
         
         # Try to create agent with tool calling, fallback if not supported
@@ -44,8 +37,7 @@ class DynamicAIReviewAgent(ScanAgent):
     
     def is_available(self) -> bool:
         """Check if Ollama is available."""
-        available, _ = SystemUtils.check_tool_availability(RequiredTools.OLLAMA)
-        return available
+        return self.is_ai_available()
     
     def _create_agent(self):
         """Create LangGraph ReAct agent with search tools."""
@@ -196,10 +188,10 @@ Keep response under 500 words and focus on the most critical issues only.
                 search_context = self._get_search_context(file_path, content)
                 enhanced_prompt = f"{search_context}\n\n{prompt}"
                 
-                response = self.llm.invoke(enhanced_prompt).content
+                response = self.call_ai(enhanced_prompt)
             
-            # Clean response by removing thinking tags and extra content
-            cleaned_response = self._clean_response(response)
+            # Clean response using base class method
+            cleaned_response = self.clean_ai_response(response)
             
             # Parse the response to create Issue objects
             ai_issues = self._parse_agent_response(cleaned_response, file_path)
@@ -295,21 +287,3 @@ Use this context to inform your analysis of the code below.
         except Exception as e:
             return f"Search context unavailable: {str(e)}"
     
-    def _clean_response(self, response: str) -> str:
-        """Clean AI response by removing thinking tags and limiting length."""
-        if not response:
-            return "No analysis provided."
-        
-        # Remove thinking tags and content between them
-        import re
-        cleaned = re.sub(r'<thinking>.*?</thinking>', '', response, flags=re.DOTALL)
-        
-        # Remove extra whitespace and newlines
-        cleaned = re.sub(r'\n\s*\n', '\n\n', cleaned.strip())
-        
-        # Limit to approximately 1000 tokens (roughly 750 words)
-        words = cleaned.split()
-        if len(words) > 750:
-            cleaned = ' '.join(words[:750]) + '...'
-        
-        return cleaned if cleaned else "No significant issues found."

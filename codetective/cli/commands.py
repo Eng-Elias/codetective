@@ -149,7 +149,7 @@ def info():
 @click.argument('paths', nargs=-1)
 @click.option('-a', '--agents', 
               default='semgrep,trivy',
-              help='Comma-separated list of agents to run')
+              help='Comma-separated list of agents to run (semgrep,trivy,ai_review)')
 @click.option('-t', '--timeout', 
               default=900, 
               type=int,
