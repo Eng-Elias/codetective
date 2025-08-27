@@ -153,13 +153,19 @@ def info():
 @click.option('-t', '--timeout', 
               default=900, 
               type=int,
-              help='Timeout in seconds')
+              help='Timeout in seconds for each agent')
 @click.option('-o', '--output', 
               default='codetective_scan_results.json',
               help='Output JSON file')
 @click.option('--diff-only', 
-              is_flag=True,
+              is_flag=True, 
               help='Scan only new/modified files (git diff)')
+@click.option('--ollama-url', 
+              default=None, 
+              help='Ollama API base URL (default: http://localhost:11434)')
+@click.option('--ollama-model', 
+              default=None, 
+              help='Ollama model to use (default: qwen3:4b)')
 @click.option('--show-output', 
               is_flag=True,
               help='Show agent output in terminal instead of JSON file')
@@ -167,14 +173,17 @@ def info():
               is_flag=True,
               help='Run agents in parallel for faster execution')
 @click.option('--force-ai', 
-              is_flag=True,
+              is_flag=True, 
               help='Force enable AI review even for >10 files')
 @click.option('--max-files', 
-              default=None,
+              default=None, 
               type=int,
               help='Maximum number of files to scan')
-def scan(paths: tuple, agents: str, timeout: int, output: str, diff_only: bool, 
-         show_output: bool, parallel: bool, force_ai: bool, max_files: int):
+def scan(
+    paths: tuple, agents: str, timeout: int, output: str,
+    max_files: int, force_ai: bool, diff_only: bool,
+    ollama_url: str, ollama_model: str, show_output: bool,
+    parallel: bool):
     """Execute multi-agent code scanning."""
     try:
         # Handle diff-only scanning
@@ -245,8 +254,18 @@ def scan(paths: tuple, agents: str, timeout: int, output: str, diff_only: bool,
         else:
             console.print(f"Scanning paths: {', '.join(validated_paths)}")
         
-        # Initialize orchestrator
-        config = get_config(scan_config=scan_config, agent_timeout=timeout)
+        # Create configuration with ollama settings
+        config_kwargs = {
+            'scan_config': scan_config,
+            'agent_timeout': timeout
+        }
+        
+        if ollama_url:
+            config_kwargs['ollama_base_url'] = ollama_url
+        if ollama_model:
+            config_kwargs['ollama_model'] = ollama_model
+            
+        config = get_config(**config_kwargs)
         orchestrator = CodeDetectiveOrchestrator(config)
         
         # Count total files for progress tracking (git-aware)
@@ -350,7 +369,15 @@ def scan(paths: tuple, agents: str, timeout: int, output: str, diff_only: bool,
               help='Fix agent to use (comment or edit)')
 @click.option('--keep-backup', is_flag=True, default=False,
               help='Keep backup files after fix completion')
-def fix(json_file: str, agent: str, keep_backup: bool):
+@click.option('--ollama-url', 
+              default=None, 
+              help='Ollama API base URL (default: http://localhost:11434)')
+@click.option('--ollama-model', 
+              default=None, 
+              help='Ollama model to use (default: qwen3:4b)')
+def fix(
+    json_file: str, agent: str, keep_backup: bool,
+    ollama_url: str, ollama_model: str):
     """Apply automated fixes to identified issues using a single agent."""
     try:
         # Load scan results
@@ -377,8 +404,18 @@ def fix(json_file: str, agent: str, keep_backup: bool):
             agents=agent_list,
         )
         
-        # Set keep_backup option in config
-        config = get_config(fix_config=fix_config, keep_backup=keep_backup)
+        # Create configuration with ollama settings
+        config_kwargs = {
+            'fix_config': fix_config,
+            'keep_backup': keep_backup
+        }
+        
+        if ollama_url:
+            config_kwargs['ollama_base_url'] = ollama_url
+        if ollama_model:
+            config_kwargs['ollama_model'] = ollama_model
+            
+        config = get_config(**config_kwargs)
         
         backup_msg = "(keeping backup files)" if keep_backup else "(deleting backup files after completion)"
         console.print(f"[bold blue]Starting fix with agent: {agent_list[0].value} {backup_msg}[/bold blue]")

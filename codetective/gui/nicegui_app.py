@@ -210,6 +210,24 @@ class CodeDetectiveApp:
                         max=1000,
                         step=10
                     )
+                    
+            # Ollama Configuration
+            ui.label('🤖 Ollama Configuration').classes('text-h5 q-mt-md q-mb-sm')
+            
+            with ui.row().classes('w-full'):
+                with ui.column().classes('flex-1'):
+                    self.ollama_url_input = ui.input(
+                        'Ollama Base URL',
+                        value='http://localhost:11434',
+                        placeholder='http://localhost:11434'
+                    ).classes('w-full')
+                    
+                with ui.column().classes('flex-1'):
+                    self.ollama_model_input = ui.input(
+                        'Ollama Model',
+                        value='qwen2.5:3b',
+                        placeholder='qwen2.5:3b'
+                    ).classes('w-full')
             
             # Start scan button
             self.start_scan_button = ui.button(
@@ -424,8 +442,13 @@ class CodeDetectiveApp:
                 max_files=int(self.max_files_input.value) if self.max_files_input.value > 0 else None,
             )
             
-            # Initialize orchestrator
-            config = get_config(scan_config=scan_config, agent_timeout=self.timeout_input.value)
+            # Initialize orchestrator with Ollama configuration
+            config = get_config(
+                scan_config=scan_config, 
+                agent_timeout=self.timeout_input.value,
+                ollama_base_url=self.ollama_url_input.value,
+                ollama_model=self.ollama_model_input.value
+            )
             orchestrator = CodeDetectiveOrchestrator(config)
                 
             # Update progress
@@ -697,8 +720,13 @@ class CodeDetectiveApp:
             status_label = ui.label('Preparing fixes...').classes('q-mt-sm')
         
         try:
-            # Initialize orchestrator
-            config = get_config(fix_config=fix_config, keep_backup=self.keep_backup.value)
+            # Initialize orchestrator with Ollama configuration
+            config = get_config(
+                fix_config=fix_config, 
+                keep_backup=self.keep_backup.value,
+                ollama_base_url=self.ollama_url_input.value,
+                ollama_model=self.ollama_model_input.value
+            )
             orchestrator = CodeDetectiveOrchestrator(config)
             
             # Prepare scan data for fix operation
