@@ -4,10 +4,16 @@ NiceGUI application for Codetective - Multi-Agent Code Review Tool.
 
 import asyncio
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from nicegui import ui
+from nicegui.elements.button import Button
+from nicegui.elements.column import Column
+from nicegui.elements.drawer import LeftDrawer
+from nicegui.elements.label import Label
 from nicegui.events import ValueChangeEventArguments
+
+from codetective.models.schemas import ScanResult
 
 try:
     # Try relative imports first (when run as module)
@@ -33,28 +39,28 @@ except ImportError:
 class CodeDetectiveApp:
     """Main NiceGUI application class for Codetective."""
 
-    def __init__(self):
-        self.current_page = "project_selection"
-        self.scan_results = None
-        self.selected_issues = []
-        self.project_path = ""
-        self.selected_files = []
-        self.scanning_in_progress = False
-        self.selected_issue_checkboxes = {}
-        self.scan_mode = "Full Project Scan"
+    def __init__(self) -> None:
+        self.current_page: str = "project_selection"
+        self.scan_results: ScanResult = ScanResult()
+        self.selected_issues: list[Issue] = []
+        self.project_path: str = ""
+        self.selected_files: list[str] = []
+        self.scanning_in_progress: bool = False
+        self.selected_issue_checkboxes: dict[str, bool] = {}
+        self.scan_mode: str = "Full Project Scan"
 
         # UI components
-        self.main_content = None
-        self.sidebar = None
-        self.progress_container = None
-        self.file_selection_container = None
-        self.selected_issues_label = None
-        self.proceed_button = None
+        self.main_content: Column = Column()
+        self.sidebar: LeftDrawer = LeftDrawer()
+        self.progress_container: Column = Column()
+        self.file_selection_container: Column = Column()
+        self.selected_issues_label: Label = Label()
+        self.proceed_button: Button = Button()
 
         # System info
         self.system_info = SystemUtils.get_system_info()
 
-    def setup_ui(self):
+    def setup_ui(self) -> None:
         """Setup the main UI layout."""
         ui.page_title("Codetective - Multi-Agent Code Review Tool")
 
@@ -73,7 +79,7 @@ class CodeDetectiveApp:
         # Show initial page
         self.show_current_page()
 
-    def setup_sidebar(self):
+    def setup_sidebar(self) -> None:
         """Setup the sidebar navigation."""
         ui.label("Navigation").classes("text-h6 q-mb-md")
 
@@ -101,12 +107,12 @@ class CodeDetectiveApp:
         ui.label(f"{trivy_icon} Trivy").classes("q-ml-sm")
         ui.label(f"{ollama_icon} Ollama").classes("q-ml-sm")
 
-    def navigate_to(self, page: str):
+    def navigate_to(self, page: str) -> None:
         """Navigate to a specific page."""
         self.current_page = page
         self.show_current_page()
 
-    def show_current_page(self):
+    def show_current_page(self) -> None:
         """Show the current page content."""
         self.main_content.clear()
 
@@ -118,7 +124,7 @@ class CodeDetectiveApp:
             elif self.current_page == "fix_application":
                 self.show_fix_application_page()
 
-    def show_project_selection_page(self):
+    def show_project_selection_page(self) -> None:
         """Show the project selection page."""
         ui.label("📁 Project Selection").classes("text-h4 q-mb-md")
 
@@ -139,13 +145,13 @@ class CodeDetectiveApp:
         if self.project_path:
             self.show_project_configuration()
 
-    def on_project_path_change(self, e: ValueChangeEventArguments):
+    def on_project_path_change(self, e: ValueChangeEventArguments) -> None:
         """Handle project path input change."""
         self.project_path = e.value
         if self.file_selection_container:
             self.update_file_selection_info()
 
-    def validate_project_path(self):
+    def validate_project_path(self) -> None:
         """Validate the project path and show configuration."""
         if not self.project_path:
             ui.notify("Please enter a project path", type="warning")
@@ -160,7 +166,7 @@ class CodeDetectiveApp:
         except Exception as e:
             ui.notify(f"❌ Error validating path: {e}", type="negative")
 
-    def show_project_configuration(self):
+    def show_project_configuration(self) -> None:
         """Show project configuration options."""
         self.project_config_container.clear()
 
@@ -224,12 +230,12 @@ class CodeDetectiveApp:
                 self.progress_bar = ui.linear_progress(value=0).classes("w-full")
                 self.progress_label = ui.label("").classes("text-center q-mt-sm")
 
-    def on_scan_mode_change(self, e: ValueChangeEventArguments):
+    def on_scan_mode_change(self, e: ValueChangeEventArguments) -> None:
         """Handle scan mode change."""
         self.scan_mode = e.value
         self.update_file_selection_info()
 
-    def update_file_selection_info(self):
+    def update_file_selection_info(self) -> None:
         """Update file selection information based on scan mode."""
         if not self.file_selection_container or not self.project_path:
             return
@@ -275,7 +281,7 @@ class CodeDetectiveApp:
                     self.selected_files = [self.project_path]
                     ui.label("📁 Non-git directory - scanning all files (respecting .gitignore)").classes("text-info")
 
-    def show_file_tree_selector(self):
+    def show_file_tree_selector(self) -> None:
         """Show file tree selector for custom file selection."""
         try:
             if GitUtils.is_git_repo(self.project_path):
@@ -329,7 +335,7 @@ class CodeDetectiveApp:
 
     def build_tree_structure(self, files: List[str]) -> List[Dict]:
         """Build hierarchical tree structure from file list."""
-        tree = {}
+        tree: Dict[str, Any] = {}
 
         for file_path in files:
             try:
@@ -384,7 +390,7 @@ class CodeDetectiveApp:
 
         return nodes
 
-    def on_tree_tick(self, e):
+    def on_tree_tick(self, e: ValueChangeEventArguments) -> None:
         """Handle tree node selection."""
         # e.value contains the list of selected node IDs
         selected_node_ids = e.value if e.value else []
@@ -402,7 +408,7 @@ class CodeDetectiveApp:
 
         ui.notify(f"Selected {len(self.selected_files)} files", type="info")
 
-    async def start_scan(self):
+    async def start_scan(self) -> None:
         """Start the scanning process."""
         if self.scanning_in_progress:
             return
@@ -487,7 +493,7 @@ class CodeDetectiveApp:
             self.scanning_in_progress = False
             self.start_scan_button.text = "🚀 Start Scan"
 
-    def show_scan_results_page(self):
+    def show_scan_results_page(self) -> None:
         """Show the scan results page."""
         ui.label("🔍 Scan Results").classes("text-h4 q-mb-md")
 
@@ -547,7 +553,7 @@ class CodeDetectiveApp:
 
             self.update_selected_issues_display()
 
-    def show_issues_tab(self, agent_name: str, issues: List[Issue]):
+    def show_issues_tab(self, agent_name: str, issues: List[Issue]) -> None:
         """Show issues for a specific agent in a tab."""
         if not issues:
             ui.label(f"No issues found by {agent_name}").classes("text-info")
@@ -559,7 +565,7 @@ class CodeDetectiveApp:
         for i, issue in enumerate(issues):
             severity_icons = {"low": "🟢", "medium": "🟡", "high": "🟠", "critical": "🔴"}
 
-            severity = issue.severity.value if hasattr(issue.severity, "value") else str(issue.severity)
+            severity = getattr(issue.severity, "value", str(issue.severity))
             icon = severity_icons.get(severity, "⚪")
 
             with ui.expansion(f"{icon} {severity.upper()}: {issue.title}").classes("w-full q-mb-sm"):
@@ -582,7 +588,7 @@ class CodeDetectiveApp:
                             on_change=lambda e, issue=issue, key=checkbox_key: self.on_issue_checkbox_change(e, issue, key),
                         )
 
-    def on_issue_checkbox_change(self, e: ValueChangeEventArguments, issue: Issue, checkbox_key: str):
+    def on_issue_checkbox_change(self, e: ValueChangeEventArguments, issue: Issue, checkbox_key: str) -> None:
         """Handle issue checkbox change."""
         self.selected_issue_checkboxes[checkbox_key] = e.value
 
@@ -596,7 +602,7 @@ class CodeDetectiveApp:
         # Update the display without full page refresh
         self.update_selected_issues_display()
 
-    def update_selected_issues_display(self):
+    def update_selected_issues_display(self) -> None:
         """Update the selected issues count and button visibility."""
         if hasattr(self, "selected_issues_label") and self.selected_issues_label:
             if self.selected_issues:
@@ -607,7 +613,7 @@ class CodeDetectiveApp:
                 self.selected_issues_label.style("display: none")
                 self.proceed_button.style("display: none")
 
-    def select_all_issues(self):
+    def select_all_issues(self) -> None:
         """Select all issues for fixing."""
         if not self.scan_results:
             return
@@ -631,7 +637,7 @@ class CodeDetectiveApp:
         # Force refresh the current page to update checkbox states
         self.show_current_page()
 
-    def show_fix_application_page(self):
+    def show_fix_application_page(self) -> None:
         """Show the fix application page."""
         ui.label("🔧 Fix Application").classes("text-h4 q-mb-md")
 
@@ -659,7 +665,7 @@ class CodeDetectiveApp:
 
         severity_counts = {"low": 0, "medium": 0, "high": 0, "critical": 0}
         for issue in self.selected_issues:
-            severity = issue.severity.value if hasattr(issue.severity, "value") else str(issue.severity)
+            severity = getattr(issue.severity, "value", str(issue.severity))
             if severity in severity_counts:
                 severity_counts[severity] += 1
 
@@ -685,7 +691,7 @@ class CodeDetectiveApp:
             ui.button("🚀 Apply Fixes", on_click=self.apply_fixes).classes("w-full").props("size=lg color=primary")
         )
 
-    async def apply_fixes(self):
+    async def apply_fixes(self) -> None:
         """Apply fixes to selected issues."""
         # Disable the apply fixes button
         self.apply_fixes_button.props("disable")
@@ -806,19 +812,19 @@ class CodeDetectiveApp:
             self.apply_fixes_button.props("enable")
             self.apply_fixes_button.text = "🚀 Apply Fixes"
 
-    def refresh_page(self):
+    def refresh_page(self) -> None:
         """Refresh the current page."""
         self.show_current_page()
 
 
-def create_app():
+def create_app() -> CodeDetectiveApp:
     """Create and configure the NiceGUI app."""
     app_instance = CodeDetectiveApp()
     app_instance.setup_ui()
     return app_instance
 
 
-def main():
+def main() -> None:
     """Main entry point for the NiceGUI application."""
     create_app()
     ui.run(title="Codetective - Multi-Agent Code Review Tool", port=7891, show=True, reload=False)

@@ -6,7 +6,7 @@ import json
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple
 
 from langgraph.graph import END, StateGraph
 from typing_extensions import TypedDict
@@ -62,7 +62,7 @@ class CodeDetectiveOrchestrator:
         self._build_scan_graph()
         self._build_fix_graph()
 
-    def _initialize_agents(self):
+    def _initialize_agents(self) -> None:
         # Initialize agents
         self.semgrep_agent = SemGrepAgent(self.config)
         self.trivy_agent = TrivyAgent(self.config)
@@ -70,7 +70,7 @@ class CodeDetectiveOrchestrator:
         self.comment_agent = CommentAgent(self.config)
         self.edit_agent = EditAgent(self.config)
 
-    def _build_scan_graph(self):
+    def _build_scan_graph(self) -> None:
         """Build the LangGraph for scan operations."""
         workflow = StateGraph(ScanState)
 
@@ -87,7 +87,7 @@ class CodeDetectiveOrchestrator:
 
         self.scan_graph = workflow.compile()
 
-    def _build_fix_graph(self):
+    def _build_fix_graph(self) -> None:
         """Build the LangGraph for fix operations."""
         workflow = StateGraph(FixState)
 
@@ -131,7 +131,7 @@ class CodeDetectiveOrchestrator:
         ai_review_issues = []
 
         # Define agent execution functions
-        def run_semgrep():
+        def run_semgrep() -> Tuple[Optional[AgentResult], List[Issue]]:
             if AgentType.SEMGREP in scan_config.agents:
                 agent_start = time.time()
                 try:
@@ -155,7 +155,7 @@ class CodeDetectiveOrchestrator:
                     )
             return None, []
 
-        def run_trivy():
+        def run_trivy() -> Tuple[Optional[AgentResult], List[Issue]]:
             if AgentType.TRIVY in scan_config.agents:
                 agent_start = time.time()
                 try:
@@ -179,7 +179,7 @@ class CodeDetectiveOrchestrator:
                     )
             return None, []
 
-        def run_ai_review():
+        def run_ai_review() -> Tuple[Optional[AgentResult], List[Issue]]:
             if AgentType.AI_REVIEW in scan_config.agents:
                 agent_start = time.time()
                 try:
@@ -220,11 +220,11 @@ class CodeDetectiveOrchestrator:
                     agent_result, issues = future.result()
                     if agent_result:
                         agent_results.append(agent_result)
-                        if agent_result.agent_type == AgentType.SEMGREP:
+                        if getattr(agent_result, "agent_type", None) == AgentType.SEMGREP:
                             semgrep_issues.extend(issues)
-                        elif agent_result.agent_type == AgentType.TRIVY:
+                        elif getattr(agent_result, "agent_type", None) == AgentType.TRIVY:
                             trivy_issues.extend(issues)
-                        elif agent_result.agent_type == AgentType.AI_REVIEW:
+                        elif getattr(agent_result, "agent_type", None) == AgentType.AI_REVIEW:
                             ai_review_issues.extend(issues)
                 except Exception as e:
                     print(f"Error in parallel agent execution: {e}")
@@ -281,7 +281,7 @@ class CodeDetectiveOrchestrator:
 
         return scan_result
 
-    def run_fix(self, scan_data: Dict[str, Any], fix_config: FixConfig, scan_results_file: str = None) -> FixResult:
+    def run_fix(self, scan_data: Dict[str, Any], fix_config: FixConfig, scan_results_file: Optional[str] = None) -> FixResult:
         """Run the fix workflow."""
         start_time = time.time()
 
@@ -330,7 +330,7 @@ class CodeDetectiveOrchestrator:
 
     def _run_all_agents(self, state: ScanState) -> Dict[str, Any]:
         """Run all selected agents sequentially to avoid duplicates."""
-        updates = {
+        updates: Dict[str, Any] = {
             "agent_results": [],
             "semgrep_issues": [],
             "trivy_issues": [],
@@ -400,7 +400,7 @@ class CodeDetectiveOrchestrator:
 
     def _run_comment_agent(self, state: FixState) -> Dict[str, Any]:
         """Run Comment agent."""
-        updates = {}
+        updates: Dict[str, Any] = {}
 
         if self.comment_agent.is_available():
             try:
@@ -415,7 +415,7 @@ class CodeDetectiveOrchestrator:
 
     def _run_edit_agent(self, state: FixState) -> Dict[str, Any]:
         """Run Edit agent."""
-        updates = {}
+        updates: Dict[str, Any] = {}
 
         if self.edit_agent.is_available():
             try:
@@ -470,7 +470,7 @@ class CodeDetectiveOrchestrator:
 
         return issues
 
-    def _update_scan_results_file(self, scan_results_file: str, fixed_issues: List[Issue], failed_issues: List[Issue]):
+    def _update_scan_results_file(self, scan_results_file: str, fixed_issues: List[Issue], failed_issues: List[Issue]) -> None:
         """Update the scan results JSON file with fix statuses."""
         try:
             # Read current scan results

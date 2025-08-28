@@ -5,6 +5,7 @@ CLI commands implementation for Codetective.
 import json
 import sys
 from pathlib import Path
+from typing import Dict, List
 
 import click
 from rich.console import Console
@@ -13,13 +14,13 @@ from rich.table import Table
 
 from codetective.core.config import get_config
 from codetective.core.orchestrator import CodeDetectiveOrchestrator
-from codetective.models.schemas import AgentType, FixConfig, Issue, ScanConfig, SeverityLevel
+from codetective.models.schemas import AgentType, FixConfig, Issue, ScanConfig, ScanResult, SeverityLevel
 from codetective.utils import FileUtils, GitUtils, SystemUtils
 
 console = Console()
 
 
-def _display_scan_results_in_terminal(scan_result, console):
+def _display_scan_results_in_terminal(scan_result: ScanResult, console: Console) -> None:
     """Display scan results in terminal format."""
     # Show detailed issues by type
     all_issues = []
@@ -31,7 +32,7 @@ def _display_scan_results_in_terminal(scan_result, console):
         console.print(f"\n[bold red]Issues Found ({len(all_issues)}):[/bold red]")
 
         # Group issues by severity
-        severity_groups = {}
+        severity_groups: Dict[str, List[Issue]] = {}
         for issue in all_issues:
             severity = getattr(issue, "severity", "UNKNOWN")
             if hasattr(severity, "value"):
@@ -82,13 +83,13 @@ def _display_scan_results_in_terminal(scan_result, console):
 
 @click.group()
 @click.version_option()
-def cli():
+def cli() -> None:
     """Codetective - Multi-Agent Code Review Tool"""
     pass
 
 
 @cli.command()
-def info():
+def info() -> None:
     """Check system compatibility and tool availability."""
     console.print("[bold blue]Codetective System Information[/bold blue]")
 
@@ -166,7 +167,7 @@ def info():
 @click.option("--force-ai", is_flag=True, help="Force enable AI review even for >10 files")
 @click.option("--max-files", default=None, type=int, help="Maximum number of files to scan")
 def scan(
-    paths: tuple,
+    paths: tuple[str],
     agents: str,
     timeout: int,
     output: str,
@@ -177,7 +178,7 @@ def scan(
     ollama_model: str,
     show_output: bool,
     parallel: bool,
-):
+) -> None:
     """Execute multi-agent code scanning."""
     try:
         # Handle diff-only scanning
@@ -381,7 +382,7 @@ def scan(
 @click.option("--keep-backup", is_flag=True, default=False, help="Keep backup files after fix completion")
 @click.option("--ollama-url", default=None, help="Ollama API base URL (default: http://localhost:11434)")
 @click.option("--ollama-model", default=None, help="Ollama model to use (default: qwen3:4b)")
-def fix(json_file: str, agent: str, keep_backup: bool, ollama_url: str, ollama_model: str):
+def fix(json_file: str, agent: str, keep_backup: bool, ollama_url: str, ollama_model: str) -> None:
     """Apply automated fixes to identified issues using a single agent."""
     try:
         # Load scan results
@@ -466,7 +467,7 @@ def fix(json_file: str, agent: str, keep_backup: bool, ollama_url: str, ollama_m
 @cli.command()
 @click.option("--host", default="localhost", help="Host to run GUI on")
 @click.option("--port", default=7891, type=int, help="Port to run GUI on")
-def gui(host: str, port: int):
+def gui(host: str, port: int) -> None:
     """Launch GUI application."""
     try:
         import subprocess

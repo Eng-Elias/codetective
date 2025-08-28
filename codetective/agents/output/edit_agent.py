@@ -3,10 +3,11 @@ Edit agent for automatically applying code fixes using AI.
 """
 
 from pathlib import Path
-from typing import Dict, List
+from typing import List
 
 from codetective.agents.ai_base import AIAgent
 from codetective.agents.base import OutputAgent
+from codetective.core.config import Config
 from codetective.models.schemas import AgentType, Issue, IssueStatus
 from codetective.utils import FileUtils
 from codetective.utils.prompt_builder import PromptBuilder
@@ -15,11 +16,11 @@ from codetective.utils.prompt_builder import PromptBuilder
 class EditAgent(OutputAgent, AIAgent):
     """Agent for automatically applying code fixes."""
 
-    def __init__(self, config):
+    def __init__(self, config: Config):
         OutputAgent.__init__(self, config)
         AIAgent.__init__(self, config)
         self.agent_type = AgentType.EDIT
-        self.backup_files_created = []  # Track backup files for cleanup
+        self.backup_files_created: list[str] = []  # Track backup files for cleanup
 
     def is_available(self) -> bool:
         """Check if Ollama is available for edit generation."""
@@ -27,8 +28,8 @@ class EditAgent(OutputAgent, AIAgent):
 
     def process_issues(self, issues: List[Issue], **kwargs) -> List[Issue]:
         """Process issues by applying automatic fixes."""
-        processed_issues = []
-        modified_files = set()
+        processed_issues: list[Issue] = []
+        modified_files: set[str] = set()
 
         # Filter out ignored and already fixed issues
         issues_to_process = self._filter_processable_issues(issues)
@@ -38,7 +39,7 @@ class EditAgent(OutputAgent, AIAgent):
             return issues
 
         # Group issues by file for efficient processing
-        issues_by_file = self._group_issues_by_file(issues_to_process)
+        issues_by_file: dict[str, list[Issue]] = self._group_issues_by_file(issues_to_process)
 
         for file_path, file_issues in issues_by_file.items():
             try:
@@ -71,9 +72,9 @@ class EditAgent(OutputAgent, AIAgent):
 
         return processed_issues
 
-    def _group_issues_by_file(self, issues: List[Issue]) -> Dict[str, List[Issue]]:
+    def _group_issues_by_file(self, issues: list[Issue]) -> dict[str, list[Issue]]:
         """Group issues by file path."""
-        issues_by_file = {}
+        issues_by_file: dict[str, list[Issue]] = {}
 
         for issue in issues:
             if issue.file_path:
@@ -83,7 +84,7 @@ class EditAgent(OutputAgent, AIAgent):
 
         return issues_by_file
 
-    def _fix_file_issues(self, file_path: str, issues: List[Issue]) -> List[Issue]:
+    def _fix_file_issues(self, file_path: str, issues: list[Issue]) -> list[Issue]:
         """Fix all issues in a single file, processing in batches if more than 3 issues."""
         if not Path(file_path).exists():
             error_msg = f"File not found: {file_path}"
@@ -348,8 +349,8 @@ Original code:
     def _extract_largest_code_block(self, response: str) -> str:
         """Extract the largest block that looks like code."""
         lines = response.split("\n")
-        current_block = []
-        largest_block = []
+        current_block: list[str] = []
+        largest_block: list[str] = []
 
         for line in lines:
             stripped = line.strip()
@@ -409,7 +410,7 @@ Original code:
 
         return processable_issues
 
-    def _cleanup_backup_files(self):
+    def _cleanup_backup_files(self) -> None:
         """Clean up backup files that were created during fixing."""
         for backup_path in self.backup_files_created:
             try:

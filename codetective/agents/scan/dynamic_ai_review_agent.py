@@ -3,13 +3,15 @@ Dynamic AI Review agent using LangChain with autonomous tool use.
 """
 
 from pathlib import Path
-from typing import List
+from typing import Any, Dict, List
 
 from langchain.tools import Tool
+from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import create_react_agent
 
 from codetective.agents.ai_base import AIAgent
 from codetective.agents.base import ScanAgent
+from codetective.core.config import Config
 from codetective.core.search import SearchTool
 from codetective.models.schemas import AgentType, Issue
 from codetective.utils import FileUtils
@@ -19,7 +21,7 @@ from codetective.utils.prompt_builder import PromptBuilder
 class DynamicAIReviewAgent(ScanAgent, AIAgent):
     """Dynamic AI Review agent with autonomous tool use."""
 
-    def __init__(self, config):
+    def __init__(self, config: Config):
         ScanAgent.__init__(self, config)
         AIAgent.__init__(self, config)
         self.agent_type = AgentType.AI_REVIEW
@@ -27,7 +29,7 @@ class DynamicAIReviewAgent(ScanAgent, AIAgent):
 
         # Try to create agent with tool calling, fallback if not supported
         try:
-            self.agent = self._create_agent()
+            self.agent: CompiledStateGraph | None = self._create_agent()
             self.supports_tools = True
         except Exception as e:
             print(f"Warning: Model {self.model} doesn't support tool calling: {e}")
@@ -39,7 +41,7 @@ class DynamicAIReviewAgent(ScanAgent, AIAgent):
         """Check if Ollama is available."""
         return self.is_ai_available()
 
-    def _create_agent(self):
+    def _create_agent(self) -> CompiledStateGraph:
         """Create LangGraph ReAct agent with search tools."""
         tools = [
             Tool(
@@ -105,14 +107,14 @@ class DynamicAIReviewAgent(ScanAgent, AIAgent):
         except Exception as e:
             return f"Content search failed: {e}"
 
-    def _search_security_tool(self, query: str) -> str:
+    def _search_security_tool(self, query: str) -> List[Dict[str, Any]] | None:
         """Search for security vulnerability information."""
         try:
             # Add security-specific keywords
             security_query = f"security vulnerability {query} CVE"
             return self.search_tool.search(security_query)
-        except Exception as e:
-            return f"Security search failed: {e}"
+        except Exception:
+            return None
 
     def scan_files(self, files: List[str]) -> List[Issue]:
         """Scan files using dynamic AI review."""
@@ -160,7 +162,7 @@ class DynamicAIReviewAgent(ScanAgent, AIAgent):
 
     def _review_file_dynamic(self, file_path: str) -> List[Issue]:
         """Review a single file using dynamic AI agent."""
-        issues = []
+        issues: List[Issue] = []
 
         # Read file content
         content = FileUtils.get_file_content(file_path)  # Limit for better processing

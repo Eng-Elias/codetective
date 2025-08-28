@@ -45,10 +45,10 @@ class Issue(BaseModel):
     title: str = Field(..., description="Issue title")
     description: str = Field(..., description="Detailed description")
     file_path: str = Field(..., description="Path to affected file")
-    severity: Optional[SeverityLevel] = Field(None, description="Issue severity")
-    line_number: Optional[int] = Field(None, description="Line number if applicable")
-    rule_id: Optional[str] = Field(None, description="Rule or check ID")
-    fix_suggestion: Optional[str] = Field(None, description="Suggested fix")
+    severity: Optional[SeverityLevel] = Field(default=None, description="Issue severity")
+    line_number: Optional[int] = Field(default=None, description="Line number if applicable")
+    rule_id: Optional[str] = Field(default=None, description="Rule or check ID")
+    fix_suggestion: Optional[str] = Field(default=None, description="Suggested fix")
     status: IssueStatus = Field(default=IssueStatus.DETECTED, description="Issue status")
 
 
@@ -59,7 +59,7 @@ class AgentResult(BaseModel):
     success: bool = Field(..., description="Whether agent executed successfully")
     issues: List[Issue] = Field(default_factory=list, description="Issues found")
     execution_time: float = Field(..., description="Execution time in seconds")
-    error_message: Optional[str] = Field(None, description="Error message if failed")
+    error_message: Optional[str] = Field(default=None, description="Error message if failed")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
 
 
@@ -82,8 +82,8 @@ class ScanResult(BaseModel):
     """Complete scan results from all agents."""
 
     timestamp: datetime = Field(default_factory=datetime.now, description="Scan timestamp")
-    scan_path: str = Field(..., description="Scanned path")
-    config: ScanConfig = Field(..., description="Scan configuration used")
+    scan_path: str = Field(default="", description="Scanned path")
+    config: ScanConfig = Field(default=ScanConfig(), description="Scan configuration used")
     semgrep_results: List[Issue] = Field(default_factory=list, description="SemGrep scan results")
     trivy_results: List[Issue] = Field(default_factory=list, description="Trivy scan results")
     ai_review_results: List[Issue] = Field(default_factory=list, description="AI review results")

@@ -7,6 +7,7 @@ from typing import List
 
 from codetective.agents.ai_base import AIAgent
 from codetective.agents.base import OutputAgent
+from codetective.core.config import Config
 from codetective.models.schemas import AgentType, Issue, IssueStatus
 from codetective.utils.prompt_builder import PromptBuilder
 
@@ -14,11 +15,11 @@ from codetective.utils.prompt_builder import PromptBuilder
 class CommentAgent(OutputAgent, AIAgent):
     """Agent for generating explanatory comments for issues."""
 
-    def __init__(self, config):
+    def __init__(self, config: Config):
         OutputAgent.__init__(self, config)
         AIAgent.__init__(self, config)
         self.agent_type = AgentType.COMMENT
-        self.backup_files_created = []  # Track backup files for cleanup
+        self.backup_files_created: list[str] = []  # Track backup files for cleanup
 
     def is_available(self) -> bool:
         """Check if Ollama is available for comment generation."""
@@ -66,7 +67,7 @@ class CommentAgent(OutputAgent, AIAgent):
 
     def _group_issues_by_file(self, issues: List[Issue]) -> dict[str, List[Issue]]:
         """Group issues by file path."""
-        issues_by_file = {}
+        issues_by_file: dict[str, List[Issue]] = {}
 
         for issue in issues:
             if issue.file_path:
@@ -378,7 +379,7 @@ Code Context:
                 break
         return indent
 
-    def _cleanup_backup_files(self):
+    def _cleanup_backup_files(self) -> None:
         """Clean up backup files that were created during comment processing."""
         for backup_path in self.backup_files_created:
             try:

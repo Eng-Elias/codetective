@@ -40,8 +40,7 @@ class AIAgent:
 
             message = HumanMessage(content=prompt)
             response = self.llm.invoke([message])
-            return response.content
-
+            return str(response.content)
         except Exception as e:
             error_msg = self._format_ai_error(e)
             raise Exception(error_msg)

@@ -5,7 +5,7 @@ Git utilities for Codetective - handle git repository operations.
 import os
 import subprocess
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 
 class GitUtils:
@@ -37,7 +37,7 @@ class GitUtils:
             return None
 
     @staticmethod
-    def get_tracked_files(repo_path: str, file_extensions: List[str] = None) -> List[str]:
+    def get_tracked_files(repo_path: str, file_extensions: Optional[List[str]] = None) -> List[str]:
         """Get all tracked files in the git repository."""
         try:
             # Get git root to ensure we're working from the right directory
@@ -67,7 +67,7 @@ class GitUtils:
             return []
 
     @staticmethod
-    def get_diff_files(repo_path: str = None) -> List[str]:
+    def get_diff_files(repo_path: Optional[str] = None) -> List[str]:
         """Get list of new/modified files from git diff."""
         try:
             cwd = repo_path or os.getcwd()
@@ -223,7 +223,7 @@ class GitUtils:
                 return []
 
             # Build tree structure
-            tree = {}
+            tree: Dict[str, Dict[str, List[str]]] = {}
             root_path = Path(git_root)
 
             for file_path in tracked_files:
