@@ -45,3 +45,56 @@ Fix Phase: Automated remediation is applied based on user selection
 - **DevOps Engineers**: Teams integrating automated code review into CI/CD pipelines
 - **Security Teams**: Security professionals conducting code security assessments
 - **Code Reviewers**: Team leads and senior developers performing code reviews
+
+## Codebase Navigation
+
+codetective/
+├── DEPLOYMENT.md
+├── FOCUS_CONTEXT
+│   ├── 01_System_and_Interaction.md
+│   ├── 02_Domain_Overview.md
+│   ├── 03_Standards_and_Conventions.md
+│   ├── 04_Tasks_and_Workflow.md
+│   └── 05_Session.md
+├── Makefile
+├── README.md
+├── codetective
+│   ├── __init__.py
+│   ├── __main__.py
+│   ├── agents
+│   │   ├── __init__.py
+│   │   ├── ai_base.py
+│   │   ├── base.py
+│   │   ├── output
+│   │   │   ├── __init__.py
+│   │   │   ├── comment_agent.py
+│   │   │   └── edit_agent.py
+│   │   └── scan
+│   │       ├── __init__.py
+│   │       ├── dynamic_ai_review_agent.py
+│   │       ├── semgrep_agent.py
+│   │       └── trivy_agent.py
+│   ├── cli
+│   │   ├── __init__.py
+│   │   └── commands.py
+│   ├── core
+│   │   ├── __init__.py
+│   │   ├── config.py
+│   │   ├── orchestrator.py
+│   │   └── search.py
+│   ├── gui
+│   │   ├── __init__.py
+│   │   └── nicegui_app.py
+│   ├── models
+│   │   ├── __init__.py
+│   │   └── schemas.py
+│   └── utils
+│       ├── __init__.py
+│       ├── file_utils.py
+│       ├── git_utils.py
+│       ├── process_utils.py
+│       ├── prompt_builder.py
+│       ├── string_utils.py
+│       └── system_utils.py
+├── pyproject.toml
+└── requirements.txt

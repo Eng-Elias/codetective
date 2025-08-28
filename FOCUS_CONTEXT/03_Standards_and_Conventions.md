@@ -6,6 +6,8 @@
 - Use **PEP 517/518** compliant `pyproject.toml` for package configuration
 - Implement proper `__init__.py` files for package structure
 - Use **type hints** throughout the codebase for better code documentation
+- **Beta Versioning**: Use semantic versioning with beta suffix (e.g., 0.1.0b1)
+- **Python Support**: Target Python 3.8-3.12 with explicit version constraints
 
 ## CLI Framework Standards
 
@@ -49,7 +51,29 @@
 - Provide user-friendly error messages in CLI
 - Log debug information for troubleshooting
 
-## Configuration Management
 
-- Environment variable support with `CODETECTIVE_` prefix
-- Validate configuration on startup
+## Git Integration Standards
+
+- **Git-Aware File Selection**: Respect .gitignore patterns
+- **Smart File Discovery**: Distinguish git-tracked vs untracked files
+- **Diff-Only Mode**: Support scanning only modified files
+- **Repository Detection**: Automatic git repository identification
+- **Fallback Behavior**: Graceful handling of non-git directories
+
+## PyPI Distribution Standards
+
+- **Modern Packaging**: Use pyproject.toml
+- **Build System**: setuptools with wheel distribution
+- **Version Management**: Semantic versioning with beta releases
+- **Dependency Specification**: Explicit version ranges with compatibility
+- **Metadata Completeness**: Full PyPI classifier and URL information
+- **Development Dependencies**: Separate dev dependencies for testing/linting
+
+## Makefile Automation Standards
+
+- **Target Naming**: Use descriptive, hyphenated target names
+- **Help System**: Comprehensive help target with command descriptions
+- **Build Pipeline**: clean → build → check → upload workflow
+- **Development Workflow**: install-dev → format → lint → test
+- **Release Automation**: Separate beta-release and production-release targets
+- **Tool Integration**: Automated external tool setup and verification
