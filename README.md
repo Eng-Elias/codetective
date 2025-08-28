@@ -19,7 +19,7 @@ A comprehensive code analysis tool that combines multiple scanning engines (SemG
 
 Before installing Codetective, ensure you have the following tools installed:
 
-1. **Python 3.9+**
+1. **Python 3.10+**
 2. **SemGrep** (optional but recommended):
    ```bash
    pip install semgrep

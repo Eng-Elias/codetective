@@ -17,7 +17,7 @@ class AIAgent:
         self.config = config
         self.ollama_url = config.ollama_base_url
         self.model = config.ollama_model or "qwen3:4b"
-        self._llm = None
+        self._llm: ChatOllama | None = None
 
     @property
     def llm(self) -> ChatOllama:

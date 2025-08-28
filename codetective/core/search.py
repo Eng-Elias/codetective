@@ -83,7 +83,9 @@ class SearchTool:
         query = f"{language} {pattern} best practices security vulnerability fix"
         return self.search(query)
 
-    def search_security_info(self, cve_id: str = None, vulnerability_type: str = None) -> List[Dict[str, Any]]:
+    def search_security_info(
+        self, cve_id: Optional[str] = None, vulnerability_type: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """Search for security vulnerability information.
 
         Args:
@@ -102,7 +104,7 @@ class SearchTool:
 
         return self.search(query)
 
-    def search_documentation(self, library: str, function: str = None) -> List[Dict[str, Any]]:
+    def search_documentation(self, library: str, function: Optional[str] = None) -> List[Dict[str, Any]]:
         """Search for library/framework documentation.
 
         Args:

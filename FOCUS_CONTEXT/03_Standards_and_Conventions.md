@@ -7,7 +7,7 @@
 - Implement proper `__init__.py` files for package structure
 - Use **type hints** throughout the codebase for better code documentation
 - **Beta Versioning**: Use semantic versioning with beta suffix (e.g., 0.1.0b1)
-- **Python Support**: Target Python 3.9-3.12 with explicit version constraints
+- **Python Support**: Target Python 3.10-3.12 with explicit version constraints
 
 ## CLI Framework Standards
 

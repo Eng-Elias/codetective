@@ -40,7 +40,7 @@
 ### Package Information
 - **Name**: codetective
 - **Version**: 0.1.0b1 (beta)
-- **Python Support**: 3.9-3.12
+- **Python Support**: 3.10-3.12
 - **Status**: Ready for PyPI beta deployment
 - **Dependencies**: 10 core dependencies including langchain-ollama, nicegui, langgraph
 
