@@ -147,8 +147,7 @@ class EditAgent(OutputAgent, AIAgent):
                 else:
                     # Mark batch issues as failed
                     batch_failed = [
-                        self._mark_issue_failed(issue, f"No fix generated for batch {batch_num}")
-                        for issue in batch_issues
+                        self._mark_issue_failed(issue, f"No fix generated for batch {batch_num}") for issue in batch_issues
                     ]
                     all_fixed_issues.extend(batch_failed)
                     print(f"Batch {batch_num} failed: No fix generated")
@@ -199,9 +198,6 @@ class EditAgent(OutputAgent, AIAgent):
 
     def _create_fix_prompt(self, file_path: str, content: str, issues: List[Issue]) -> str:
         """Create a prompt for generating code fixes."""
-        file_extension = Path(file_path).suffix
-
-        # Create issues summary
         issues_summary = []
         for i, issue in enumerate(issues, 1):
             line_info = f" (line {issue.line_number})" if issue.line_number else ""

@@ -41,7 +41,8 @@ class ProcessUtils:
                     else:  # Unix/Linux
                         process.send_signal(signal.SIGTERM)
                     process.wait(timeout=5)  # Give it 5 seconds to terminate gracefully
-                except:
+                except Exception as e:
+                    print(f"Error terminating process: {e}")
                     if os.name == "nt":
                         process.kill()
                     else:
@@ -51,6 +52,6 @@ class ProcessUtils:
             if process:
                 try:
                     process.terminate()
-                except:
-                    pass
+                except Exception as e:
+                    print(f"Error terminating process: {e}")
             return False, "", str(e)

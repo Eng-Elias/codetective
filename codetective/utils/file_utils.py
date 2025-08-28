@@ -101,9 +101,7 @@ class FileUtils:
             if path.is_file():
                 files.append(str(path))
             elif path.is_dir():
-                dir_files = FileUtils._scan_directory(
-                    path, include_patterns, exclude_patterns, max_size, respect_gitignore
-                )
+                dir_files = FileUtils._scan_directory(path, include_patterns, exclude_patterns, max_size, respect_gitignore)
                 files.extend(dir_files)
 
         return files

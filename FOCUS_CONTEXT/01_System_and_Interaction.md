@@ -45,7 +45,7 @@
 ### PyPI Distribution
 - **Package Name**: `codetective`
 - **Installation**: `pip install codetective`
-- **Python Support**: 3.8-3.12
+- **Python Support**: 3.9-3.12
 
 ### File System Operations
 - **Input**: Source code files and directories

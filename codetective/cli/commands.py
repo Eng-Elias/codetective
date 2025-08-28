@@ -66,7 +66,11 @@ def _display_scan_results_in_terminal(scan_result, console):
                             console.print(f"  • {issue.title}")
                         if hasattr(issue, "file_path"):
                             console.print(
-                                f"    File: {issue.file_path} {" : " + str(issue.line_number) if hasattr(issue, 'line_number') and issue.line_number else ''}"
+                                f"    File: {issue.file_path} {
+                                    " : " + str(issue.line_number)
+                                    if hasattr(issue, 'line_number') and issue.line_number
+                                    else ''
+                                }"
                             )
                         if hasattr(issue, "rule_id"):
                             console.print(f"    Rule ID: {issue.rule_id}")
@@ -151,9 +155,7 @@ def info():
 
 @cli.command()
 @click.argument("paths", nargs=-1)
-@click.option(
-    "-a", "--agents", default="semgrep,trivy", help="Comma-separated list of agents to run (semgrep,trivy,ai_review)"
-)
+@click.option("-a", "--agents", default="semgrep,trivy", help="Comma-separated list of agents to run (semgrep,trivy,ai_review)")
 @click.option("-t", "--timeout", default=900, type=int, help="Timeout in seconds for each agent")
 @click.option("-o", "--output", default="codetective_scan_results.json", help="Output JSON file")
 @click.option("--diff-only", is_flag=True, help="Scan only new/modified files (git diff)")
@@ -249,9 +251,7 @@ def scan(
                         file_count += len(files)
 
             if file_count > 10 and not force_ai:
-                console.print(
-                    f"[yellow]Warning: {file_count} files detected. AI Review disabled for performance.[/yellow]"
-                )
+                console.print(f"[yellow]Warning: {file_count} files detected. AI Review disabled for performance.[/yellow]")
                 console.print("[yellow]Use --force-ai to enable AI Review for large codebases.[/yellow]")
                 agent_list.remove(AgentType.AI_REVIEW)
 
@@ -293,7 +293,7 @@ def scan(
                     git_repos.append(path)
                     total_files += GitUtils.get_file_count(path)
                     console.print(f"[blue]Git repository detected: {path}[/blue]")
-                    console.print(f"[blue]Scanning git-tracked files only[/blue]")
+                    console.print("[blue]Scanning git-tracked files only[/blue]")
                 else:
                     # Fall back to gitignore-aware method for non-git directories
                     files = FileUtils.get_file_list([path], respect_gitignore=True)
@@ -329,15 +329,13 @@ def scan(
             TextColumn("files"),
             console=console,
         ) as progress:
-            scan_task = progress.add_task(
-                f"Scanning {total_files} files with {len(agent_list)} agents...", total=len(agent_list)
-            )
+            scan_task = progress.add_task(f"Scanning {total_files} files with {len(agent_list)} agents...", total=len(agent_list))
 
             scan_result = orchestrator.run_scan(scan_config)
 
             progress.update(scan_task, completed=len(agent_list))
 
-        console.print(f"\n[bold green]✅ Scan completed![/bold green]")
+        console.print("\n[bold green]✅ Scan completed![/bold green]")
         console.print(f"Total issues found: {scan_result.total_issues}")
         console.print(f"Scan duration: {scan_result.scan_duration:.2f} seconds")
         console.print(f"Files scanned: {total_files}")
@@ -437,7 +435,7 @@ def fix(json_file: str, agent: str, keep_backup: bool, ollama_url: str, ollama_m
             progress.update(task, completed=True)
 
         # Display summary
-        console.print(f"\n[bold green]✅ Fix completed![/bold green]")
+        console.print("\n[bold green]✅ Fix completed![/bold green]")
         console.print(f"Fixed issues: {len(fix_result.fixed_issues)}")
         console.print(f"Failed issues: {len(fix_result.failed_issues)}")
         console.print(f"Modified files: {len(fix_result.modified_files)}")
@@ -475,7 +473,7 @@ def gui(host: str, port: int):
         import sys
         from pathlib import Path
 
-        console.print(f"[bold blue]Starting Codetective GUI...[/bold blue]")
+        console.print("[bold blue]Starting Codetective GUI...[/bold blue]")
         console.print(f"GUI will be available at: http://{host}:{port}")
 
         # Get the path to the nicegui app
@@ -491,7 +489,7 @@ def gui(host: str, port: int):
         cmd = [sys.executable, str(gui_module)]
         subprocess.run(cmd)
 
-    except ImportError as e:
+    except ImportError:
         console.print("[red]NiceGUI not installed. Please install with: pip install nicegui[/red]")
         sys.exit(1)
     except Exception as e:

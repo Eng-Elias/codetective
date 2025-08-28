@@ -174,7 +174,7 @@ class CommentAgent(OutputAgent, AIAgent):
                 return "\n".join(context_lines)
             else:
                 # If no specific line, return first 10 lines
-                return "\n".join(f"{i+1:4d}     {line.rstrip()}" for i, line in enumerate(lines[:10]))
+                return "\n".join(f"{i + 1 : 4d}     {line.rstrip()}" for i, line in enumerate(lines[:10]))
 
         except Exception:
             return ""
@@ -205,7 +205,8 @@ Code Context:
 
         config = {
             "role": "a helpful code reviewer",
-            "instruction": "Generate a concise TODO comment (under 100 words) that explains what the issue is, why it's dangerous, and how to fix it.",
+            "instruction": "Generate a concise TODO comment (under 100 words) that explains what the issue is, "
+            "why it's dangerous, and how to fix it.",
             "output_constraints": [
                 "Keep under 100 words",
                 "Return ONLY the comment text, no additional formatting or explanations",
@@ -232,7 +233,10 @@ Code Context:
 
     def _generate_fallback_comment(self, issue: Issue) -> str:
         """Generate a fallback comment when AI generation fails."""
-        return f"TODO: Fix {issue.severity} security issue - {issue.description}. Review code and apply appropriate security measures."
+        return (
+            f"TODO: Fix {issue.severity} security issue - {issue.description}. "
+            "Review code and apply appropriate security measures."
+        )
 
     def _filter_processable_issues(self, issues: List[Issue]) -> List[Issue]:
         """Filter out ignored and already processed issues."""

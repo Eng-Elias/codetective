@@ -51,9 +51,7 @@ class AIAgent:
         error_str = str(error).lower()
 
         if "connection" in error_str or "connect" in error_str:
-            return (
-                f"Cannot connect to Ollama server at {self.ollama_url}. Please ensure Ollama is running and accessible."
-            )
+            return f"Cannot connect to Ollama server at {self.ollama_url}. Please ensure Ollama is running and accessible."
         elif "timeout" in error_str:
             return f"Ollama request timed out after {self.config.agent_timeout} seconds"
         elif "404" in error_str or "not found" in error_str:

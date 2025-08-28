@@ -18,7 +18,6 @@ try:
 except ImportError:
     # Fall back to absolute imports (when run as script)
     import sys
-    from pathlib import Path
 
     # Add the parent directory to the path
     parent_dir = Path(__file__).parent.parent.parent
@@ -78,9 +77,7 @@ class CodeDetectiveApp:
         """Setup the sidebar navigation."""
         ui.label("Navigation").classes("text-h6 q-mb-md")
 
-        ui.button("📁 Project Selection", on_click=lambda: self.navigate_to("project_selection")).classes(
-            "w-full q-mb-sm"
-        )
+        ui.button("📁 Project Selection", on_click=lambda: self.navigate_to("project_selection")).classes("w-full q-mb-sm")
 
         ui.button("🔍 Scan Results", on_click=lambda: self.navigate_to("scan_results")).classes(
             "w-full q-mb-sm"
@@ -210,15 +207,13 @@ class CodeDetectiveApp:
                     ).classes("w-full")
 
                 with ui.column().classes("flex-1"):
-                    self.ollama_model_input = ui.input(
-                        "Ollama Model", value="qwen2.5:3b", placeholder="qwen2.5:3b"
-                    ).classes("w-full")
+                    self.ollama_model_input = ui.input("Ollama Model", value="qwen2.5:3b", placeholder="qwen2.5:3b").classes(
+                        "w-full"
+                    )
 
             # Start scan button
             self.start_scan_button = (
-                ui.button("🚀 Start Scan", on_click=self.start_scan)
-                .classes("w-full q-mt-md")
-                .props("size=lg color=primary")
+                ui.button("🚀 Start Scan", on_click=self.start_scan).classes("w-full q-mt-md").props("size=lg color=primary")
             )
 
             self.start_scan_button.bind_enabled_from(self, "scanning_in_progress", lambda x: not x)
@@ -266,9 +261,7 @@ class CodeDetectiveApp:
 
             else:  # Full Project Scan
                 if GitUtils.is_git_repo(self.project_path):
-                    ui.label("🔍 Git repository detected - scanning git-tracked + new untracked files").classes(
-                        "text-info"
-                    )
+                    ui.label("🔍 Git repository detected - scanning git-tracked + new untracked files").classes("text-info")
                     try:
                         all_files = GitUtils.get_git_tracked_and_new_files(self.project_path)
                         self.selected_files = all_files
@@ -329,9 +322,7 @@ class CodeDetectiveApp:
                     tree_nodes, label_key="label", tick_strategy="leaf-filtered", on_tick=self.on_tree_tick
                 ).classes("w-full")
 
-            self.selected_files_label = ui.label(f"Selected: {len(self.selected_files)} files").classes(
-                "text-info q-mt-sm"
-            )
+            self.selected_files_label = ui.label(f"Selected: {len(self.selected_files)} files").classes("text-info q-mt-sm")
 
         except Exception as e:
             ui.label(f"❌ Error loading files: {e}").classes("text-negative")
@@ -566,12 +557,9 @@ class CodeDetectiveApp:
 
         # Issues list
         for i, issue in enumerate(issues):
-            severity_colors = {"low": "blue", "medium": "orange", "high": "red", "critical": "red"}
-
             severity_icons = {"low": "🟢", "medium": "🟡", "high": "🟠", "critical": "🔴"}
 
             severity = issue.severity.value if hasattr(issue.severity, "value") else str(issue.severity)
-            color = severity_colors.get(severity, "grey")
             icon = severity_icons.get(severity, "⚪")
 
             with ui.expansion(f"{icon} {severity.upper()}: {issue.title}").classes("w-full q-mb-sm"):
@@ -588,12 +576,10 @@ class CodeDetectiveApp:
                         ui.label(f"Severity: {icon} {severity.title()}").classes("text-body2")
 
                         checkbox_key = f"issue_{agent_name}_{i}"
-                        checkbox = ui.checkbox(
+                        ui.checkbox(
                             "Include in fix",
                             value=self.selected_issue_checkboxes.get(checkbox_key, False),
-                            on_change=lambda e, issue=issue, key=checkbox_key: self.on_issue_checkbox_change(
-                                e, issue, key
-                            ),
+                            on_change=lambda e, issue=issue, key=checkbox_key: self.on_issue_checkbox_change(e, issue, key),
                         )
 
     def on_issue_checkbox_change(self, e: ValueChangeEventArguments, issue: Issue, checkbox_key: str):
@@ -626,9 +612,7 @@ class CodeDetectiveApp:
         if not self.scan_results:
             return
 
-        all_issues = (
-            self.scan_results.semgrep_results + self.scan_results.trivy_results + self.scan_results.ai_review_results
-        )
+        all_issues = self.scan_results.semgrep_results + self.scan_results.trivy_results + self.scan_results.ai_review_results
 
         self.selected_issues = all_issues
 
@@ -652,9 +636,7 @@ class CodeDetectiveApp:
         ui.label("🔧 Fix Application").classes("text-h4 q-mb-md")
 
         if not self.selected_issues:
-            ui.label("No issues selected for fixing. Please select issues from the scan results.").classes(
-                "text-warning"
-            )
+            ui.label("No issues selected for fixing. Please select issues from the scan results.").classes("text-warning")
             return
 
         ui.label(f"Ready to fix {len(self.selected_issues)} selected issues").classes("text-info q-mb-md")
@@ -665,9 +647,7 @@ class CodeDetectiveApp:
         with ui.row().classes("w-full q-mb-md"):
             with ui.column().classes("flex-1"):
                 self.fix_agent = (
-                    ui.select(["edit", "comment"], label="Fix Agent", value="edit")
-                    .classes("w-full")
-                    .style("min-width: 200px")
+                    ui.select(["edit", "comment"], label="Fix Agent", value="edit").classes("w-full").style("min-width: 200px")
                 )
 
             with ui.column().classes("flex-1"):
@@ -747,9 +727,7 @@ class CodeDetectiveApp:
             await asyncio.sleep(0.1)
 
             # Run fix in executor
-            fix_result = await asyncio.get_event_loop().run_in_executor(
-                None, orchestrator.run_fix, scan_data, fix_config
-            )
+            fix_result = await asyncio.get_event_loop().run_in_executor(None, orchestrator.run_fix, scan_data, fix_config)
 
             progress.value = 1.0
             status_label.text = "✅ Fixes applied!"

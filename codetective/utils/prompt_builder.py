@@ -73,9 +73,7 @@ class PromptBuilder:
             prompt_parts.append(f"Here's some background that may help you:\n{context}")
 
         if constraints := config.get("output_constraints"):
-            prompt_parts.append(
-                PromptBuilder.format_prompt_section("Ensure your response follows these rules:", constraints)
-            )
+            prompt_parts.append(PromptBuilder.format_prompt_section("Ensure your response follows these rules:", constraints))
 
         if tone := config.get("style_or_tone"):
             prompt_parts.append(

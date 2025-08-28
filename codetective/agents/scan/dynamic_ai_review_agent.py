@@ -6,16 +6,14 @@ from pathlib import Path
 from typing import List
 
 from langchain.tools import Tool
-from langchain_ollama import ChatOllama
 from langgraph.prebuilt import create_react_agent
 
 from codetective.agents.ai_base import AIAgent
 from codetective.agents.base import ScanAgent
 from codetective.core.search import SearchTool
 from codetective.models.schemas import AgentType, Issue
-from codetective.utils import FileUtils, SystemUtils
+from codetective.utils import FileUtils
 from codetective.utils.prompt_builder import PromptBuilder
-from codetective.utils.system_utils import RequiredTools
 
 
 class DynamicAIReviewAgent(ScanAgent, AIAgent):
@@ -46,12 +44,15 @@ class DynamicAIReviewAgent(ScanAgent, AIAgent):
         tools = [
             Tool(
                 name="search",
-                description="Search the web for information about security vulnerabilities, best practices, or code patterns. Use this when you need current information about security issues, coding standards, or documentation.",
+                description="Search the web for information about security vulnerabilities, best practices, or code patterns. "
+                "Use this when you need current information about security issues, coding standards, or documentation.",
                 func=self._search_tool,
             ),
             Tool(
                 name="search_with_content",
-                description="Search the web and fetch full content from URLs for detailed information. Use this when you need comprehensive details about security vulnerabilities, documentation, or best practices.",
+                description="Search the web and fetch full content from URLs for detailed information. "
+                "Use this when you need comprehensive details about "
+                "security vulnerabilities, documentation, or best practices.",
                 func=self._search_with_content_tool,
             ),
             Tool(
@@ -65,7 +66,12 @@ class DynamicAIReviewAgent(ScanAgent, AIAgent):
         return create_react_agent(
             model=self.llm,
             tools=tools,
-            prompt="You are an expert code security reviewer. Analyze code for security vulnerabilities, code quality issues, and best practice violations. Use the available search tools to get current information about security patterns and best practices when needed.",
+            prompt="""
+            You are an expert code security reviewer.
+            Analyze code for security vulnerabilities, code quality issues, and best practice violations.
+            Use the available search tools to get current information about security patterns
+            and best practices when needed.
+            """,
         )
 
     def _search_tool(self, query: str) -> str:
@@ -93,9 +99,7 @@ class DynamicAIReviewAgent(ScanAgent, AIAgent):
             formatted_results = []
             for i, result in enumerate(results[:2], 1):  # Limit to 2 for content fetching
                 content = result.get("full_content", result.get("body", ""))
-                formatted_results.append(
-                    f"{i}. {result['title']}\n   Content: {content[:1000]}...\n   URL: {result['url']}\n"
-                )
+                formatted_results.append(f"{i}. {result['title']}\n   Content: {content[:1000]}...\n   URL: {result['url']}\n")
 
             return "\n".join(formatted_results)
         except Exception as e:
@@ -259,9 +263,7 @@ Code:
         title = f"AI Review: {file_name}"
 
         # Create a single Issue object with the AI response as description
-        issue = Issue(
-            id=f"ai-review-{hash(file_path + response)}", title=title, description=response, file_path=file_path
-        )
+        issue = Issue(id=f"ai-review-{hash(file_path + response)}", title=title, description=response, file_path=file_path)
         issues.append(issue)
 
         return issues
@@ -290,7 +292,7 @@ Code:
                 try:
                     result = self.search_tool.search(pattern)
                     pattern_context += f"\n{pattern}: {result[:300]}..."
-                except:
+                except Exception:
                     continue
 
             return f"""

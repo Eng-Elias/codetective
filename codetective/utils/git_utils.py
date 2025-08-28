@@ -20,9 +20,7 @@ class GitUtils:
                 return True
 
             # Check if we're in a git worktree
-            result = subprocess.run(
-                ["git", "rev-parse", "--git-dir"], cwd=path, capture_output=True, text=True, timeout=5
-            )
+            result = subprocess.run(["git", "rev-parse", "--git-dir"], cwd=path, capture_output=True, text=True, timeout=5)
             return result.returncode == 0
         except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError, OSError):
             return False
@@ -31,9 +29,7 @@ class GitUtils:
     def get_git_root(path: str) -> Optional[str]:
         """Get the root directory of the git repository."""
         try:
-            result = subprocess.run(
-                ["git", "rev-parse", "--show-toplevel"], cwd=path, capture_output=True, text=True, timeout=5
-            )
+            result = subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=path, capture_output=True, text=True, timeout=5)
             if result.returncode == 0:
                 return result.stdout.strip()
             return None

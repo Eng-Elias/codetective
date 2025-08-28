@@ -138,9 +138,7 @@ class CodeDetectiveOrchestrator:
                     issues = self.semgrep_agent.scan_files(scan_config.paths)
                     execution_time = time.time() - agent_start
                     return (
-                        AgentResult(
-                            agent_type=AgentType.SEMGREP, success=True, issues=issues, execution_time=execution_time
-                        ),
+                        AgentResult(agent_type=AgentType.SEMGREP, success=True, issues=issues, execution_time=execution_time),
                         issues,
                     )
                 except Exception as e:
@@ -164,9 +162,7 @@ class CodeDetectiveOrchestrator:
                     issues = self.trivy_agent.scan_files(scan_config.paths)
                     execution_time = time.time() - agent_start
                     return (
-                        AgentResult(
-                            agent_type=AgentType.TRIVY, success=True, issues=issues, execution_time=execution_time
-                        ),
+                        AgentResult(agent_type=AgentType.TRIVY, success=True, issues=issues, execution_time=execution_time),
                         issues,
                     )
                 except Exception as e:
@@ -190,9 +186,7 @@ class CodeDetectiveOrchestrator:
                     issues = self.ai_review_agent.scan_files(scan_config.paths)
                     execution_time = time.time() - agent_start
                     return (
-                        AgentResult(
-                            agent_type=AgentType.AI_REVIEW, success=True, issues=issues, execution_time=execution_time
-                        ),
+                        AgentResult(agent_type=AgentType.AI_REVIEW, success=True, issues=issues, execution_time=execution_time),
                         issues,
                     )
                 except Exception as e:
