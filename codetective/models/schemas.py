@@ -71,7 +71,7 @@ class ScanConfig(BaseModel):
     parallel_execution: bool = Field(default=False, description="Run agents in parallel")
     paths: List[str] = Field(default_factory=lambda: ["."], description="Paths to scan")
     # only store values for now
-    max_files: Optional[int] = Field(None, description="Maximum number of files to scan")
+    max_files: Optional[int] = Field(default=None, description="Maximum number of files to scan")
     output_file: Optional[str] = Field(default="codetective_scan_results.json", description="Output JSON file")
     # for future versions use
     include_patterns: List[str] = Field(default_factory=list, description="File patterns to include")

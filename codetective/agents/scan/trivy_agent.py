@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List
 
 from codetective.agents.base import ScanAgent
+from codetective.core.config import Config
 from codetective.models.schemas import AgentType, Issue, IssueStatus, SeverityLevel
 from codetective.utils import ProcessUtils, SystemUtils
 from codetective.utils.system_utils import RequiredTools
@@ -15,7 +16,7 @@ from codetective.utils.system_utils import RequiredTools
 class TrivyAgent(ScanAgent):
     """Agent for running Trivy security vulnerability scanning."""
 
-    def __init__(self, config):
+    def __init__(self, config: Config):
         super().__init__(config)
         self.agent_type = AgentType.TRIVY
 
@@ -101,7 +102,7 @@ class TrivyAgent(ScanAgent):
 
         return issues
 
-    def _create_vulnerability_issue(self, vuln: dict, target: str) -> Issue:
+    def _create_vulnerability_issue(self, vuln: dict, target: str) -> Issue | None:
         """Create an Issue from a Trivy vulnerability."""
         try:
             vuln_id = vuln.get("VulnerabilityID", "unknown")
@@ -130,7 +131,7 @@ class TrivyAgent(ScanAgent):
         except Exception:
             return None
 
-    def _create_secret_issue(self, secret: dict, target: str) -> Issue:
+    def _create_secret_issue(self, secret: dict, target: str) -> Issue | None:
         """Create an Issue from a Trivy secret detection."""
         try:
             rule_id = secret.get("RuleID", "unknown")
@@ -152,7 +153,7 @@ class TrivyAgent(ScanAgent):
         except Exception:
             return None
 
-    def _create_misconfig_issue(self, misconfig: dict, target: str) -> Issue:
+    def _create_misconfig_issue(self, misconfig: dict, target: str) -> Issue | None:
         """Create an Issue from a Trivy misconfiguration."""
         try:
             rule_id = misconfig.get("ID", "unknown")

@@ -18,7 +18,7 @@ class BaseAgent(ABC):
     def __init__(self, config: Config):
         """Initialize the agent with configuration."""
         self.config = config
-        self.agent_type: AgentType = None
+        self.agent_type: AgentType | None = None
         self._execution_start_time: Optional[float] = None
 
     @abstractmethod
@@ -36,7 +36,8 @@ class BaseAgent(ABC):
         self._execution_start_time = time.time()
 
     def _create_result(
-        self, success: bool, issues: List[Issue] = None, error_message: str = None, metadata: Dict[str, Any] = None
+        self, success: bool, issues: Optional[List[Issue]] = None,
+        error_message: Optional[str] = None, metadata: Optional[Dict[str, Any]] = None
     ) -> AgentResult:
         """Create an AgentResult with timing information."""
         execution_time = time.time() - self._execution_start_time if self._execution_start_time else 0.0
@@ -50,7 +51,7 @@ class BaseAgent(ABC):
             metadata=metadata or {},
         )
 
-    def _get_supported_files(self, paths: List[str], extensions: List[str] = None) -> List[str]:
+    def _get_supported_files(self, paths: List[str], extensions: Optional[List[str]] = None) -> List[str]:
         """Get list of supported files from paths."""
         supported_files = []
 
@@ -121,7 +122,7 @@ class OutputAgent(BaseAgent):
         """Process issues and return modified issues."""
         pass
 
-    def execute(self, paths: List[str], issues: List[Issue] = None, **kwargs) -> AgentResult:
+    def execute(self, paths: List[str], issues: Optional[List[Issue]] = None, **kwargs) -> AgentResult:
         """Execute the output agent."""
         self._start_execution()
 

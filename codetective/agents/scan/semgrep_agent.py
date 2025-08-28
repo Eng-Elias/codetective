@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List
 
 from codetective.agents.base import ScanAgent
+from codetective.core.config import Config
 from codetective.models.schemas import AgentType, Issue, IssueStatus, SeverityLevel
 from codetective.utils import ProcessUtils, SystemUtils
 from codetective.utils.system_utils import RequiredTools
@@ -15,7 +16,7 @@ from codetective.utils.system_utils import RequiredTools
 class SemGrepAgent(ScanAgent):
     """Agent for running SemGrep static analysis."""
 
-    def __init__(self, config):
+    def __init__(self, config: Config):
         super().__init__(config)
         self.agent_type = AgentType.SEMGREP
 

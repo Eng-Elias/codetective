@@ -5,7 +5,7 @@ File utilities for Codetective - handle file operations and path validation.
 import fnmatch
 import shutil
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 
 class FileUtils:
@@ -179,7 +179,7 @@ class FileUtils:
         Path(directory).mkdir(parents=True, exist_ok=True)
 
     @staticmethod
-    def get_file_content(file_path: str, max_lines: int = None) -> str:
+    def get_file_content(file_path: str, max_lines: Optional[int] = None) -> str:
         """Get file content with optional line limit."""
         try:
             with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
