@@ -9,7 +9,7 @@ from typing import Any
 
 class StringUtils:
     """Utility class for string-related operations."""
-    
+
     @staticmethod
     def format_duration(seconds: float) -> str:
         """Format duration in seconds to human-readable string."""
@@ -31,20 +31,21 @@ class StringUtils:
         """Truncate text to maximum length with ellipsis."""
         if len(text) <= max_length:
             return text
-        return text[:max_length-3] + "..."
+        return text[: max_length - 3] + "..."
 
     @staticmethod
     def safe_json_dump(data: Any) -> str:
         """Safely dump data to JSON string with error handling."""
+
         def json_serializer(obj):
             if isinstance(obj, datetime):
                 return obj.isoformat()
-            elif hasattr(obj, 'model_dump'):
+            elif hasattr(obj, "model_dump"):
                 return obj.model_dump()
-            elif hasattr(obj, '__dict__'):
+            elif hasattr(obj, "__dict__"):
                 return obj.__dict__
             return str(obj)
-        
+
         try:
             return json.dumps(data, indent=2, default=json_serializer)
         except Exception as e:

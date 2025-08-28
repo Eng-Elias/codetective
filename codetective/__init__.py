@@ -10,6 +10,6 @@ __author__ = "Codetective Team"
 __description__ = "Multi-Agent Code Review Tool"
 
 from .core.config import Config
-from .models.schemas import ScanResult, AgentResult
+from .models.schemas import AgentResult, ScanResult
 
 __all__ = ["Config", "ScanResult", "AgentResult"]

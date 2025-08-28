@@ -3,13 +3,15 @@ Pydantic models for Codetective data structures.
 """
 
 from datetime import datetime
-from typing import List, Dict, Any, Optional
-from pydantic import BaseModel, Field
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
 
 
 class AgentType(str, Enum):
     """Available agent types."""
+
     SEMGREP = "semgrep"
     TRIVY = "trivy"
     AI_REVIEW = "ai_review"
@@ -19,6 +21,7 @@ class AgentType(str, Enum):
 
 class SeverityLevel(str, Enum):
     """Issue severity levels."""
+
     INFO = "info"
     LOW = "low"
     MEDIUM = "medium"
@@ -28,6 +31,7 @@ class SeverityLevel(str, Enum):
 
 class IssueStatus(str, Enum):
     """Issue processing status."""
+
     DETECTED = "detected"
     FIXED = "fixed"
     IGNORED = "ignored"
@@ -36,6 +40,7 @@ class IssueStatus(str, Enum):
 
 class Issue(BaseModel):
     """Individual issue found by an agent."""
+
     id: str = Field(..., description="Unique issue identifier")
     title: str = Field(..., description="Issue title")
     description: str = Field(..., description="Detailed description")
@@ -49,6 +54,7 @@ class Issue(BaseModel):
 
 class AgentResult(BaseModel):
     """Result from a single agent execution."""
+
     agent_type: AgentType = Field(..., description="Type of agent")
     success: bool = Field(..., description="Whether agent executed successfully")
     issues: List[Issue] = Field(default_factory=list, description="Issues found")
@@ -59,6 +65,7 @@ class AgentResult(BaseModel):
 
 class ScanConfig(BaseModel):
     """Configuration for scan operations."""
+
     # used in this version
     agents: List[AgentType] = Field(default_factory=lambda: [AgentType.SEMGREP, AgentType.TRIVY])
     parallel_execution: bool = Field(default=False, description="Run agents in parallel")
@@ -73,6 +80,7 @@ class ScanConfig(BaseModel):
 
 class ScanResult(BaseModel):
     """Complete scan results from all agents."""
+
     timestamp: datetime = Field(default_factory=datetime.now, description="Scan timestamp")
     scan_path: str = Field(..., description="Scanned path")
     config: ScanConfig = Field(..., description="Scan configuration used")
@@ -86,11 +94,13 @@ class ScanResult(BaseModel):
 
 class FixConfig(BaseModel):
     """Configuration for fix operations."""
+
     agents: List[AgentType] = Field(default=[AgentType.EDIT], description="Fix agents to use")
 
 
 class FixResult(BaseModel):
     """Result from fix operations."""
+
     timestamp: datetime = Field(default_factory=datetime.now, description="Fix timestamp")
     config: FixConfig = Field(..., description="Fix configuration used")
     fixed_issues: List[Issue] = Field(default_factory=list, description="Successfully fixed issues")
@@ -101,6 +111,7 @@ class FixResult(BaseModel):
 
 class SystemInfo(BaseModel):
     """System information and tool availability."""
+
     semgrep_available: bool = Field(default=False, description="SemGrep tool availability")
     trivy_available: bool = Field(default=False, description="Trivy tool availability")
     ollama_available: bool = Field(default=False, description="Ollama service availability")

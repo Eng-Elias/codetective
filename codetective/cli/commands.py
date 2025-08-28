@@ -8,17 +8,16 @@ from pathlib import Path
 
 import click
 from rich.console import Console
+from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 from rich.table import Table
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 
 from codetective.core.config import get_config
 from codetective.core.orchestrator import CodeDetectiveOrchestrator
-from codetective.utils import SystemUtils, FileUtils
-from codetective.models.schemas import ScanConfig, FixConfig, AgentType, Issue, SeverityLevel
-from codetective.utils import GitUtils
-
+from codetective.models.schemas import AgentType, FixConfig, Issue, ScanConfig, SeverityLevel
+from codetective.utils import FileUtils, GitUtils, SystemUtils
 
 console = Console()
+
 
 def _display_scan_results_in_terminal(scan_result, console):
     """Display scan results in terminal format."""
@@ -27,46 +26,55 @@ def _display_scan_results_in_terminal(scan_result, console):
     all_issues.extend(scan_result.semgrep_results)
     all_issues.extend(scan_result.trivy_results)
     all_issues.extend(scan_result.ai_review_results)
-    
+
     if all_issues:
         console.print(f"\n[bold red]Issues Found ({len(all_issues)}):[/bold red]")
-        
+
         # Group issues by severity
         severity_groups = {}
         for issue in all_issues:
-            severity = getattr(issue, 'severity', 'UNKNOWN')
-            if hasattr(severity, 'value'):
+            severity = getattr(issue, "severity", "UNKNOWN")
+            if hasattr(severity, "value"):
                 severity = severity.value
             if severity not in severity_groups:
                 severity_groups[severity] = []
             severity_groups[severity].append(issue)
-        
+
         # Display issues by severity
         severity_colors = {
-            SeverityLevel.CRITICAL.value: 'bright_red',
-            SeverityLevel.HIGH.value: 'red',
-            SeverityLevel.MEDIUM.value: 'yellow',
-            SeverityLevel.LOW.value: 'blue',
-            SeverityLevel.INFO.value: 'green'
+            SeverityLevel.CRITICAL.value: "bright_red",
+            SeverityLevel.HIGH.value: "red",
+            SeverityLevel.MEDIUM.value: "yellow",
+            SeverityLevel.LOW.value: "blue",
+            SeverityLevel.INFO.value: "green",
         }
-        
-        for severity in [SeverityLevel.CRITICAL.value, SeverityLevel.HIGH.value, SeverityLevel.MEDIUM.value, SeverityLevel.LOW.value, SeverityLevel.INFO.value]:
+
+        for severity in [
+            SeverityLevel.CRITICAL.value,
+            SeverityLevel.HIGH.value,
+            SeverityLevel.MEDIUM.value,
+            SeverityLevel.LOW.value,
+            SeverityLevel.INFO.value,
+        ]:
             if severity in severity_groups:
-                color = severity_colors.get(severity, 'white')
+                color = severity_colors.get(severity, "white")
                 console.print(f"\n[bold {color}]{severity} ({len(severity_groups[severity])} issues):[/bold {color}]")
-                
+
                 for issue in severity_groups[severity]:
                     if isinstance(issue, Issue):
-                        if hasattr(issue, 'title'):
+                        if hasattr(issue, "title"):
                             console.print(f"  • {issue.title}")
-                        if hasattr(issue, 'file_path'):
-                            console.print(f"    File: {issue.file_path} {" : " + str(issue.line_number) if hasattr(issue, 'line_number') and issue.line_number else ''}")
-                        if hasattr(issue, 'rule_id'):
+                        if hasattr(issue, "file_path"):
+                            console.print(
+                                f"    File: {issue.file_path} {" : " + str(issue.line_number) if hasattr(issue, 'line_number') and issue.line_number else ''}"
+                            )
+                        if hasattr(issue, "rule_id"):
                             console.print(f"    Rule ID: {issue.rule_id}")
-                        if hasattr(issue, 'description'):
+                        if hasattr(issue, "description"):
                             console.print(f"    {issue.description}")
-                        if hasattr(issue, 'fix_suggestion'):
+                        if hasattr(issue, "fix_suggestion"):
                             console.print(f"    Fix suggestion: {issue.fix_suggestion}")
+
 
 @click.group()
 @click.version_option()
@@ -79,7 +87,7 @@ def cli():
 def info():
     """Check system compatibility and tool availability."""
     console.print("[bold blue]Codetective System Information[/bold blue]")
-    
+
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
@@ -88,46 +96,42 @@ def info():
         task = progress.add_task("Checking system compatibility...", total=None)
         system_info = SystemUtils.get_system_info()
         progress.update(task, completed=True)
-    
+
     # Create system info table
     table = Table(title="System Compatibility Check")
     table.add_column("Component", style="cyan", no_wrap=True)
     table.add_column("Status", style="green")
     table.add_column("Version", style="yellow")
-    
+
     # Add rows for each component
     table.add_row(
         "Python",
         "✅ Available" if system_info.python_version else "❌ Not Available",
-        system_info.python_version or "Unknown"
+        system_info.python_version or "Unknown",
     )
-    
-    table.add_row(
-        "Codetective",
-        "✅ Available",
-        system_info.codetective_version
-    )
-    
+
+    table.add_row("Codetective", "✅ Available", system_info.codetective_version)
+
     table.add_row(
         "SemGrep",
         "✅ Available" if system_info.semgrep_available else "❌ Not Available",
-        system_info.semgrep_version or "Not installed"
+        system_info.semgrep_version or "Not installed",
     )
-    
+
     table.add_row(
         "Trivy",
         "✅ Available" if system_info.trivy_available else "❌ Not Available",
-        system_info.trivy_version or "Not installed"
+        system_info.trivy_version or "Not installed",
     )
-    
+
     table.add_row(
         "Ollama",
         "✅ Available" if system_info.ollama_available else "❌ Not Available",
-        system_info.ollama_version or "Not running"
+        system_info.ollama_version or "Not running",
     )
-    
+
     console.print(table)
-    
+
     # Show recommendations if tools are missing
     missing_tools = []
     if not system_info.semgrep_available:
@@ -136,7 +140,7 @@ def info():
         missing_tools.append("Trivy: https://aquasecurity.github.io/trivy/latest/getting-started/installation/")
     if not system_info.ollama_available:
         missing_tools.append("Ollama: https://ollama.ai/download")
-    
+
     if missing_tools:
         console.print("\n[bold yellow]Installation Recommendations:[/bold yellow]")
         for tool in missing_tools:
@@ -146,44 +150,32 @@ def info():
 
 
 @cli.command()
-@click.argument('paths', nargs=-1)
-@click.option('-a', '--agents', 
-              default='semgrep,trivy',
-              help='Comma-separated list of agents to run (semgrep,trivy,ai_review)')
-@click.option('-t', '--timeout', 
-              default=900, 
-              type=int,
-              help='Timeout in seconds for each agent')
-@click.option('-o', '--output', 
-              default='codetective_scan_results.json',
-              help='Output JSON file')
-@click.option('--diff-only', 
-              is_flag=True, 
-              help='Scan only new/modified files (git diff)')
-@click.option('--ollama-url', 
-              default=None, 
-              help='Ollama API base URL (default: http://localhost:11434)')
-@click.option('--ollama-model', 
-              default=None, 
-              help='Ollama model to use (default: qwen3:4b)')
-@click.option('--show-output', 
-              is_flag=True,
-              help='Show agent output in terminal instead of JSON file')
-@click.option('--parallel', 
-              is_flag=True,
-              help='Run agents in parallel for faster execution')
-@click.option('--force-ai', 
-              is_flag=True, 
-              help='Force enable AI review even for >10 files')
-@click.option('--max-files', 
-              default=None, 
-              type=int,
-              help='Maximum number of files to scan')
+@click.argument("paths", nargs=-1)
+@click.option(
+    "-a", "--agents", default="semgrep,trivy", help="Comma-separated list of agents to run (semgrep,trivy,ai_review)"
+)
+@click.option("-t", "--timeout", default=900, type=int, help="Timeout in seconds for each agent")
+@click.option("-o", "--output", default="codetective_scan_results.json", help="Output JSON file")
+@click.option("--diff-only", is_flag=True, help="Scan only new/modified files (git diff)")
+@click.option("--ollama-url", default=None, help="Ollama API base URL (default: http://localhost:11434)")
+@click.option("--ollama-model", default=None, help="Ollama model to use (default: qwen3:4b)")
+@click.option("--show-output", is_flag=True, help="Show agent output in terminal instead of JSON file")
+@click.option("--parallel", is_flag=True, help="Run agents in parallel for faster execution")
+@click.option("--force-ai", is_flag=True, help="Force enable AI review even for >10 files")
+@click.option("--max-files", default=None, type=int, help="Maximum number of files to scan")
 def scan(
-    paths: tuple, agents: str, timeout: int, output: str,
-    max_files: int, force_ai: bool, diff_only: bool,
-    ollama_url: str, ollama_model: str, show_output: bool,
-    parallel: bool):
+    paths: tuple,
+    agents: str,
+    timeout: int,
+    output: str,
+    max_files: int,
+    force_ai: bool,
+    diff_only: bool,
+    ollama_url: str,
+    ollama_model: str,
+    show_output: bool,
+    parallel: bool,
+):
     """Execute multi-agent code scanning."""
     try:
         # Handle diff-only scanning
@@ -198,24 +190,24 @@ def scan(
         else:
             # Use current directory if no paths provided
             if not paths:
-                paths = ['.']
+                paths = ["."]
             # Validate paths
             validated_paths = FileUtils.validate_paths(list(paths))
-        
+
         # Parse agents
         agent_list = []
-        for agent_name in agents.split(','):
+        for agent_name in agents.split(","):
             agent_name = agent_name.strip().lower()
-            if agent_name == 'semgrep':
+            if agent_name == "semgrep":
                 agent_list.append(AgentType.SEMGREP)
-            elif agent_name == 'trivy':
+            elif agent_name == "trivy":
                 agent_list.append(AgentType.TRIVY)
-            elif agent_name == 'ai_review':
+            elif agent_name == "ai_review":
                 agent_list.append(AgentType.AI_REVIEW)
             else:
                 console.print(f"[red]Unknown agent: {agent_name}[/red]")
                 sys.exit(1)
-        
+
         # Smart AI review handling
         if AgentType.AI_REVIEW in agent_list and not diff_only:
             # Count files to scan using git-aware method
@@ -229,13 +221,37 @@ def scan(
                         file_count += GitUtils.get_file_count(path)
                     else:
                         # Fall back to gitignore-aware method for non-git directories
-                        files = FileUtils.get_file_list([path], 
-                                            include_patterns=['*.py', '*.js', '*.ts', '*.jsx', '*.tsx', '*.java', '*.c', '*.cpp', '*.h', '*.hpp', '*.cs', '*.php', '*.rb', '*.go', '*.rs', '*.swift', '*.kt', '*.scala', '*.sh'],
-                                            respect_gitignore=True)
+                        files = FileUtils.get_file_list(
+                            [path],
+                            include_patterns=[
+                                "*.py",
+                                "*.js",
+                                "*.ts",
+                                "*.jsx",
+                                "*.tsx",
+                                "*.java",
+                                "*.c",
+                                "*.cpp",
+                                "*.h",
+                                "*.hpp",
+                                "*.cs",
+                                "*.php",
+                                "*.rb",
+                                "*.go",
+                                "*.rs",
+                                "*.swift",
+                                "*.kt",
+                                "*.scala",
+                                "*.sh",
+                            ],
+                            respect_gitignore=True,
+                        )
                         file_count += len(files)
-            
+
             if file_count > 10 and not force_ai:
-                console.print(f"[yellow]Warning: {file_count} files detected. AI Review disabled for performance.[/yellow]")
+                console.print(
+                    f"[yellow]Warning: {file_count} files detected. AI Review disabled for performance.[/yellow]"
+                )
                 console.print("[yellow]Use --force-ai to enable AI Review for large codebases.[/yellow]")
                 agent_list.remove(AgentType.AI_REVIEW)
 
@@ -247,27 +263,24 @@ def scan(
             output_file=output if not show_output else None,
             max_files=max_files,
         )
-        
+
         console.print(f"[bold blue]Starting scan with agents: {', '.join([a.value for a in agent_list])}[/bold blue]")
         if diff_only:
             console.print(f"Scanning {len(validated_paths)} modified files")
         else:
             console.print(f"Scanning paths: {', '.join(validated_paths)}")
-        
+
         # Create configuration with ollama settings
-        config_kwargs = {
-            'scan_config': scan_config,
-            'agent_timeout': timeout
-        }
-        
+        config_kwargs = {"scan_config": scan_config, "agent_timeout": timeout}
+
         if ollama_url:
-            config_kwargs['ollama_base_url'] = ollama_url
+            config_kwargs["ollama_base_url"] = ollama_url
         if ollama_model:
-            config_kwargs['ollama_model'] = ollama_model
-            
+            config_kwargs["ollama_model"] = ollama_model
+
         config = get_config(**config_kwargs)
         orchestrator = CodeDetectiveOrchestrator(config)
-        
+
         # Count total files for progress tracking (git-aware)
         total_files = 0
         git_repos = []
@@ -285,7 +298,7 @@ def scan(
                     # Fall back to gitignore-aware method for non-git directories
                     files = FileUtils.get_file_list([path], respect_gitignore=True)
                     total_files += len(files)
-        
+
         # Update scan config to use git-tracked files for git repos
         if git_repos:
             git_files = []
@@ -297,16 +310,16 @@ def scan(
                     git_files.extend(GitUtils.get_code_files(path))
                 else:
                     non_git_paths.append(path)
-            
+
             # Update validated_paths to include git files and non-git paths
             if git_files:
                 validated_paths = git_files + non_git_paths
-        
+
         # Apply max_files limit
         if max_files and total_files > max_files:
             console.print(f"[yellow]Limiting scan to {max_files} files (found {total_files})[/yellow]")
             total_files = max_files
-        
+
         # Run scan with enhanced progress
         with Progress(
             SpinnerColumn(),
@@ -316,10 +329,12 @@ def scan(
             TextColumn("files"),
             console=console,
         ) as progress:
-            scan_task = progress.add_task(f"Scanning {total_files} files with {len(agent_list)} agents...", total=len(agent_list))
-            
+            scan_task = progress.add_task(
+                f"Scanning {total_files} files with {len(agent_list)} agents...", total=len(agent_list)
+            )
+
             scan_result = orchestrator.run_scan(scan_config)
-            
+
             progress.update(scan_task, completed=len(agent_list))
 
         console.print(f"\n[bold green]✅ Scan completed![/bold green]")
@@ -328,23 +343,23 @@ def scan(
         console.print(f"Files scanned: {total_files}")
 
         if scan_result.agent_results:
-                table = Table(title="Agent Results Summary")
-                table.add_column("Agent", style="cyan")
-                table.add_column("Status", style="green")
-                table.add_column("Issues", style="yellow")
-                table.add_column("Duration", style="blue")
-                
-                for agent_result in scan_result.agent_results:
-                    status = "✅ Success" if agent_result.success else "❌ Failed"
-                    table.add_row(
-                        agent_result.agent_type.value.title(),
-                        status,
-                        str(len(agent_result.issues)),
-                        f"{agent_result.execution_time:.2f}s"
-                    )
-                
-                console.print(table)
-        
+            table = Table(title="Agent Results Summary")
+            table.add_column("Agent", style="cyan")
+            table.add_column("Status", style="green")
+            table.add_column("Issues", style="yellow")
+            table.add_column("Duration", style="blue")
+
+            for agent_result in scan_result.agent_results:
+                status = "✅ Success" if agent_result.success else "❌ Failed"
+                table.add_row(
+                    agent_result.agent_type.value.title(),
+                    status,
+                    str(len(agent_result.issues)),
+                    f"{agent_result.execution_time:.2f}s",
+                )
+
+            console.print(table)
+
         # Handle output based on show_output flag
         if show_output:
             # Show detailed results by agent (includes agent summary table and issues)
@@ -352,32 +367,23 @@ def scan(
         else:
             # Save results to JSON file and show basic summary
             output_path = Path(output)
-            with open(output_path, 'w') as f:
+            with open(output_path, "w") as f:
                 json.dump(scan_result.model_dump(), f, indent=2, default=str)
 
             console.print(f"Results saved to:\n{output_path.absolute()}")
-    
+
     except Exception as e:
         console.print(f"[red]Error during scan: {e}[/red]")
         sys.exit(1)
 
 
 @cli.command()
-@click.argument('json_file')
-@click.option('-a', '--agent', 
-              default='edit',
-              help='Fix agent to use (comment or edit)')
-@click.option('--keep-backup', is_flag=True, default=False,
-              help='Keep backup files after fix completion')
-@click.option('--ollama-url', 
-              default=None, 
-              help='Ollama API base URL (default: http://localhost:11434)')
-@click.option('--ollama-model', 
-              default=None, 
-              help='Ollama model to use (default: qwen3:4b)')
-def fix(
-    json_file: str, agent: str, keep_backup: bool,
-    ollama_url: str, ollama_model: str):
+@click.argument("json_file")
+@click.option("-a", "--agent", default="edit", help="Fix agent to use (comment or edit)")
+@click.option("--keep-backup", is_flag=True, default=False, help="Keep backup files after fix completion")
+@click.option("--ollama-url", default=None, help="Ollama API base URL (default: http://localhost:11434)")
+@click.option("--ollama-model", default=None, help="Ollama model to use (default: qwen3:4b)")
+def fix(json_file: str, agent: str, keep_backup: bool, ollama_url: str, ollama_model: str):
     """Apply automated fixes to identified issues using a single agent."""
     try:
         # Load scan results
@@ -385,44 +391,41 @@ def fix(
         if not json_path.exists():
             console.print(f"[red]JSON file not found: {json_file}[/red]")
             sys.exit(1)
-        
-        with open(json_path, 'r') as f:
+
+        with open(json_path, "r") as f:
             scan_data = json.load(f)
-        
+
         # Parse agent
         agent_name = agent.strip().lower()
-        if agent_name == 'comment':
+        if agent_name == "comment":
             agent_list = [AgentType.COMMENT]
-        elif agent_name == 'edit':
+        elif agent_name == "edit":
             agent_list = [AgentType.EDIT]
         else:
             console.print(f"[red]Unknown fix agent: {agent_name}. Use 'comment' or 'edit'[/red]")
             sys.exit(1)
-        
+
         # Create fix configuration
         fix_config = FixConfig(
             agents=agent_list,
         )
-        
+
         # Create configuration with ollama settings
-        config_kwargs = {
-            'fix_config': fix_config,
-            'keep_backup': keep_backup
-        }
-        
+        config_kwargs = {"fix_config": fix_config, "keep_backup": keep_backup}
+
         if ollama_url:
-            config_kwargs['ollama_base_url'] = ollama_url
+            config_kwargs["ollama_base_url"] = ollama_url
         if ollama_model:
-            config_kwargs['ollama_model'] = ollama_model
-            
+            config_kwargs["ollama_model"] = ollama_model
+
         config = get_config(**config_kwargs)
-        
+
         backup_msg = "(keeping backup files)" if keep_backup else "(deleting backup files after completion)"
         console.print(f"[bold blue]Starting fix with agent: {agent_list[0].value} {backup_msg}[/bold blue]")
-        
+
         # Initialize orchestrator
         orchestrator = CodeDetectiveOrchestrator(config)
-        
+
         # Run fix
         with Progress(
             SpinnerColumn(),
@@ -432,19 +435,19 @@ def fix(
             task = progress.add_task("Applying fixes...", total=None)
             fix_result = orchestrator.run_fix(scan_data, fix_config, str(json_path))
             progress.update(task, completed=True)
-        
+
         # Display summary
         console.print(f"\n[bold green]✅ Fix completed![/bold green]")
         console.print(f"Fixed issues: {len(fix_result.fixed_issues)}")
         console.print(f"Failed issues: {len(fix_result.failed_issues)}")
         console.print(f"Modified files: {len(fix_result.modified_files)}")
         console.print(f"Fix duration: {fix_result.fix_duration:.2f} seconds")
-        
+
         if fix_result.modified_files:
             console.print("\n[bold yellow]Modified files:[/bold yellow]")
             for file_path in fix_result.modified_files:
                 console.print(f"  • {file_path}")
-        
+
         if fix_result.failed_issues:
             console.print("\n[bold red]Failed fixes:[/bold red]")
             for issue in fix_result.failed_issues:
@@ -452,40 +455,42 @@ def fix(
                 if "Fix failed:" in issue.description:
                     error_part = issue.description.split("Fix failed:")[-1].strip()
                     console.print(f"    Error: {error_part}")
-    
+
     except Exception as e:
         console.print(f"[red]Error during fix: {e}[/red]")
         # Print more detailed error information
         import traceback
+
         console.print(f"[red]Detailed error: {traceback.format_exc()}[/red]")
         sys.exit(1)
 
 
 @cli.command()
-@click.option('--host', default='localhost', help='Host to run GUI on')
-@click.option('--port', default=7891, type=int, help='Port to run GUI on')
+@click.option("--host", default="localhost", help="Host to run GUI on")
+@click.option("--port", default=7891, type=int, help="Port to run GUI on")
 def gui(host: str, port: int):
     """Launch GUI application."""
     try:
         import subprocess
         import sys
         from pathlib import Path
-        
+
         console.print(f"[bold blue]Starting Codetective GUI...[/bold blue]")
         console.print(f"GUI will be available at: http://{host}:{port}")
-        
+
         # Get the path to the nicegui app
         gui_module = Path(__file__).parent.parent / "gui" / "nicegui_app.py"
-            
+
         # Set environment variables for NiceGUI
         import os
-        os.environ['NICEGUI_HOST'] = host
-        os.environ['NICEGUI_PORT'] = str(port)
-            
+
+        os.environ["NICEGUI_HOST"] = host
+        os.environ["NICEGUI_PORT"] = str(port)
+
         # Launch nicegui
         cmd = [sys.executable, str(gui_module)]
         subprocess.run(cmd)
-    
+
     except ImportError as e:
         console.print("[red]NiceGUI not installed. Please install with: pip install nicegui[/red]")
         sys.exit(1)
@@ -494,5 +499,5 @@ def gui(host: str, port: int):
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli()

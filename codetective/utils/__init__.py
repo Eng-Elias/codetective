@@ -2,16 +2,10 @@
 Utility modules for Codetective.
 """
 
-from .git_utils import GitUtils
 from .file_utils import FileUtils
-from .system_utils import SystemUtils
+from .git_utils import GitUtils
 from .process_utils import ProcessUtils
 from .string_utils import StringUtils
+from .system_utils import SystemUtils
 
-__all__ = [
-    'GitUtils',
-    'FileUtils', 
-    'SystemUtils',
-    'ProcessUtils',
-    'StringUtils'
-]
+__all__ = ["GitUtils", "FileUtils", "SystemUtils", "ProcessUtils", "StringUtils"]
