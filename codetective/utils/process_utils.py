@@ -52,6 +52,6 @@ class ProcessUtils:
             if process:
                 try:
                     process.terminate()
-                except Exception as e:
-                    print(f"Error terminating process: {e}")
+                except Exception:
+                    print(f"Error terminating process")
             return False, "", str(e)

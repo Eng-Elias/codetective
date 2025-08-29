@@ -85,9 +85,9 @@ class FileUtils:
     @staticmethod
     def get_file_list(
         paths: List[str],
-        include_patterns: List[str] = None,
-        exclude_patterns: List[str] = None,
-        max_size: int = None,
+        include_patterns: List[str] = [],
+        exclude_patterns: List[str] = [],
+        max_size: Optional[int] = None,
         respect_gitignore: bool = True,
     ) -> List[str]:
         """Get list of files to scan based on paths and patterns."""
@@ -111,7 +111,7 @@ class FileUtils:
         directory: Path,
         include_patterns: List[str],
         exclude_patterns: List[str],
-        max_size: int = None,
+        max_size: Optional[int] = None,
         respect_gitignore: bool = True,
     ) -> List[str]:
         """Scan a directory for files matching the given criteria."""
@@ -143,7 +143,7 @@ class FileUtils:
         gitignore_patterns: List[str],
         include_patterns: List[str],
         exclude_patterns: List[str],
-        max_size: int = None,
+        max_size: Optional[int] = None,
         respect_gitignore: bool = True,
     ) -> bool:
         """Check if a file should be included based on all criteria."""

@@ -37,7 +37,7 @@ class StringUtils:
     def safe_json_dump(data: Any) -> str:
         """Safely dump data to JSON string with error handling."""
 
-        def json_serializer(obj):
+        def json_serializer(obj: Any) -> str:
             if isinstance(obj, datetime):
                 return obj.isoformat()
             elif hasattr(obj, "model_dump"):

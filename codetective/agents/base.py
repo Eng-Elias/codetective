@@ -18,7 +18,7 @@ class BaseAgent(ABC):
     def __init__(self, config: Config):
         """Initialize the agent with configuration."""
         self.config = config
-        self.agent_type: AgentType | None = None
+        self.agent_type: AgentType = AgentType.UNKOWN
         self._execution_start_time: Optional[float] = None
 
     @abstractmethod

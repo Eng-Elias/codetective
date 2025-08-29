@@ -17,6 +17,7 @@ class AgentType(str, Enum):
     AI_REVIEW = "ai_review"
     COMMENT = "comment"
     EDIT = "edit"
+    UNKOWN = "unknown"
 
 
 class SeverityLevel(str, Enum):
