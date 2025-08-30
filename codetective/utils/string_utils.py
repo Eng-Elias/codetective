@@ -41,9 +41,9 @@ class StringUtils:
             if isinstance(obj, datetime):
                 return obj.isoformat()
             elif hasattr(obj, "model_dump"):
-                return obj.model_dump()
+                return str(obj.model_dump())
             elif hasattr(obj, "__dict__"):
-                return obj.__dict__
+                return str(obj.__dict__)
             return str(obj)
 
         try:

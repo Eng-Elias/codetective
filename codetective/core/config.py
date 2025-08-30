@@ -2,6 +2,7 @@
 Configuration management for Codetective.
 """
 
+from typing import Any
 from pydantic import BaseModel, Field
 
 from codetective.models.schemas import FixConfig, ScanConfig
@@ -33,6 +34,6 @@ class Config(BaseModel):
     gui_port: int = Field(default=7891, description="GUI port")
 
 
-def get_config(**kwargs) -> Config:
+def get_config(**kwargs: Any) -> Config:
     """Get the global configuration instance."""
     return Config(**kwargs)

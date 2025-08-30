@@ -3,7 +3,7 @@ Comment agent for generating explanatory comments using AI.
 """
 
 from pathlib import Path
-from typing import List
+from typing import Any, List
 
 from codetective.agents.ai_base import AIAgent
 from codetective.agents.base import OutputAgent
@@ -25,7 +25,7 @@ class CommentAgent(OutputAgent, AIAgent):
         """Check if Ollama is available for comment generation."""
         return self.is_ai_available()
 
-    def process_issues(self, issues: List[Issue], **kwargs) -> List[Issue]:
+    def process_issues(self, issues: List[Issue], **kwargs: Any) -> List[Issue]:
         """Process issues by adding explanatory comments."""
         processed_issues = []
 

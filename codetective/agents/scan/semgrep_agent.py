@@ -4,7 +4,7 @@ SemGrep agent for static code analysis.
 
 import json
 from pathlib import Path
-from typing import List
+from typing import Any, List
 
 from codetective.agents.base import ScanAgent
 from codetective.core.config import Config
@@ -25,7 +25,7 @@ class SemGrepAgent(ScanAgent):
         available, _ = SystemUtils.check_tool_availability(RequiredTools.SEMGREP)
         return available
 
-    def scan_files(self, files: List[str]) -> List[Issue]:
+    def scan_files(self, files: List[str], **kwargs: Any) -> List[Issue]:
         """Scan files using SemGrep."""
         issues = []
 

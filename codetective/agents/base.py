@@ -22,7 +22,7 @@ class BaseAgent(ABC):
         self._execution_start_time: Optional[float] = None
 
     @abstractmethod
-    def execute(self, paths: List[str], **kwargs) -> AgentResult:
+    def execute(self, paths: List[str], **kwargs: Any) -> AgentResult:
         """Execute the agent on the given paths."""
         pass
 
@@ -86,11 +86,11 @@ class ScanAgent(BaseAgent):
     """Base class for scanning agents."""
 
     @abstractmethod
-    def scan_files(self, files: List[str]) -> List[Issue]:
+    def scan_files(self, files: List[str], **kwargs: Any) -> List[Issue]:
         """Scan files and return issues."""
         pass
 
-    def execute(self, paths: List[str], **kwargs) -> AgentResult:
+    def execute(self, paths: List[str], **kwargs: Any) -> AgentResult:
         """Execute the scan agent."""
         self._start_execution()
 
@@ -121,11 +121,11 @@ class OutputAgent(BaseAgent):
     """Base class for output agents."""
 
     @abstractmethod
-    def process_issues(self, issues: List[Issue], **kwargs) -> List[Issue]:
+    def process_issues(self, issues: List[Issue], **kwargs: Any) -> List[Issue]:
         """Process issues and return modified issues."""
         pass
 
-    def execute(self, paths: List[str], issues: Optional[List[Issue]] = None, **kwargs) -> AgentResult:
+    def execute(self, paths: List[str], issues: Optional[List[Issue]] = None, **kwargs: Any) -> AgentResult:
         """Execute the output agent."""
         self._start_execution()
 

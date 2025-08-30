@@ -116,7 +116,7 @@ class DynamicAIReviewAgent(ScanAgent, AIAgent):
         except Exception:
             return None
 
-    def scan_files(self, files: List[str]) -> List[Issue]:
+    def scan_files(self, files: List[str], **kwargs: Any) -> List[Issue]:
         """Scan files using dynamic AI review."""
         issues = []
 
