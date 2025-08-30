@@ -249,7 +249,7 @@ class CodeDetectiveOrchestrator:
 
     def _run_scan_sequential(self, scan_config: ScanConfig, start_time: float) -> ScanResult:
         """Run agents sequentially using LangGraph."""
-        initial_state = ScanState(
+        initial_state: Any = ScanState(
             config=scan_config,
             paths=scan_config.paths,
             agent_results=[],
@@ -291,7 +291,7 @@ class CodeDetectiveOrchestrator:
         all_issues.extend(self._parse_issues_from_scan_data(scan_data.get("trivy_results", [])))
         all_issues.extend(self._parse_issues_from_scan_data(scan_data.get("ai_review_results", [])))
 
-        initial_state = FixState(
+        initial_state: Any = FixState(
             config=fix_config,
             scan_data=scan_data,
             issues_to_fix=all_issues,

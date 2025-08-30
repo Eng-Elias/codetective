@@ -46,7 +46,7 @@ class ProcessUtils:
                     if os.name == "nt":
                         process.kill()
                     else:
-                        process.send_signal(signal.SIGKILL)
+                        process.send_signal(getattr(signal, "SIGKILL", signal.SIGTERM))
             return False, "", f"Command timed out after {timeout} seconds"
         except Exception as e:
             if process:
