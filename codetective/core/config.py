@@ -3,6 +3,7 @@ Configuration management for Codetective.
 """
 
 from typing import Any
+
 from pydantic import BaseModel, Field
 
 from codetective.models.schemas import FixConfig, ScanConfig
