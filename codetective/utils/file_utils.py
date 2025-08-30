@@ -45,7 +45,8 @@ class FileUtils:
                         line = line.strip()
                         if line and not line.startswith("#"):
                             patterns.append(line)
-            except Exception:
+            except Exception as e:
+                print(f"Error loading .gitignore patterns: {e}")
                 pass
 
         return patterns

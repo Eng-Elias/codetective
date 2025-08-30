@@ -464,7 +464,8 @@ class CodeDetectiveOrchestrator:
                 if isinstance(issue_data, dict):
                     issue = Issue(**issue_data)
                     issues.append(issue)
-            except Exception:
+            except Exception as e:
+                print(f"Error parsing issue data: {e}")
                 # Skip invalid issue data
                 continue
 

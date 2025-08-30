@@ -294,7 +294,8 @@ Code:
                 try:
                     result = self.search_tool.search(pattern)
                     pattern_context += f"\n{pattern}: {result[:300]}..."
-                except Exception:
+                except Exception as e:
+                    print(f"Error searching for pattern {pattern}: {e}")
                     continue
 
             return f"""
