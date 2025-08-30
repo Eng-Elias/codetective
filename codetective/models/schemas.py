@@ -68,9 +68,9 @@ class ScanConfig(BaseModel):
     """Configuration for scan operations."""
 
     # used in this version
-    agents: List[AgentType] = Field(default_factory=lambda: [AgentType.SEMGREP, AgentType.TRIVY])
+    agents: List[AgentType] = Field(default=[AgentType.SEMGREP, AgentType.TRIVY])
     parallel_execution: bool = Field(default=False, description="Run agents in parallel")
-    paths: List[str] = Field(default_factory=lambda: ["."], description="Paths to scan")
+    paths: List[str] = Field(default=["."], description="Paths to scan")
     # only store values for now
     max_files: Optional[int] = Field(default=None, description="Maximum number of files to scan")
     output_file: Optional[str] = Field(default="codetective_scan_results.json", description="Output JSON file")

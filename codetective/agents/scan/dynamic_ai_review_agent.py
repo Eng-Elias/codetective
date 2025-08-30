@@ -46,20 +46,27 @@ class DynamicAIReviewAgent(ScanAgent, AIAgent):
         tools = [
             Tool(
                 name="search",
-                description="Search the web for information about security vulnerabilities, best practices, or code patterns. "
-                "Use this when you need current information about security issues, coding standards, or documentation.",
+                description="""
+                    Search the web for information about security vulnerabilities, best practices, or code patterns.
+                    Use this when you need current information about security issues, coding standards, or documentation.
+                """,
                 func=self._search_tool,
             ),
             Tool(
                 name="search_with_content",
-                description="Search the web and fetch full content from URLs for detailed information. "
-                "Use this when you need comprehensive details about "
-                "security vulnerabilities, documentation, or best practices.",
+                description="""
+                    Search the web and fetch full content from URLs for detailed information.
+                    Use this when you need comprehensive details about
+                    security vulnerabilities, documentation, or best practices.
+                """,
                 func=self._search_with_content_tool,
             ),
             Tool(
                 name="search_security",
-                description="Search for specific security vulnerability information. Provide CVE ID or vulnerability type.",
+                description="""
+                    Search for specific security vulnerability information.
+                    Provide CVE ID or vulnerability type.
+                """,
                 func=self._search_security_tool,
             ),
         ]

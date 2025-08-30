@@ -366,7 +366,7 @@ def scan(
         else:
             # Save results to JSON file and show basic summary
             output_path = Path(output)
-            with open(output_path, "w") as f:
+            with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(scan_result.model_dump(), f, indent=2, default=str)
 
             console.print(f"Results saved to:\n{output_path.absolute()}")
@@ -391,7 +391,7 @@ def fix(json_file: str, agent: str, keep_backup: bool, ollama_url: str, ollama_m
             console.print(f"[red]JSON file not found: {json_file}[/red]")
             sys.exit(1)
 
-        with open(json_path, "r") as f:
+        with open(json_path, "r", encoding="utf-8") as f:
             scan_data = json.load(f)
 
         # Parse agent

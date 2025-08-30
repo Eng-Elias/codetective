@@ -393,8 +393,6 @@ class CodeDetectiveOrchestrator:
 
         if AgentType.COMMENT in agents:
             return "comment"
-        elif AgentType.EDIT in agents:
-            return "edit"
         else:
             return "edit"  # Default to edit
 
