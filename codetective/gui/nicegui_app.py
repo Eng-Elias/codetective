@@ -213,7 +213,7 @@ class CodeDetectiveApp:
                     ).classes("w-full")
 
                 with ui.column().classes("flex-1"):
-                    self.ollama_model_input = ui.input("Ollama Model", value="qwen2.5:3b", placeholder="qwen2.5:3b").classes(
+                    self.ollama_model_input = ui.input("Ollama Model", value="qwen3:4b", placeholder="qwen3:4b").classes(
                         "w-full"
                     )
 
