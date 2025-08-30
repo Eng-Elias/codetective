@@ -39,8 +39,10 @@ cd codetective
 
 # Install the package
 pip install -e .
+# OR
+make install
 
-# Or install from PyPI (when available)
+# Or install from PyPI
 pip install codetective
 ```
 
@@ -71,23 +73,13 @@ codetective scan . --output my_scan_results.json
 
 ```bash
 # Apply automatic fixes
-codetective fix codetective_scan_results.json --agents edit
+codetective fix codetective_scan_results.json
 
 # Add explanatory comments instead
-codetective fix codetective_scan_results.json --agents comment
+codetective fix codetective_scan_results.json --agent comment
 ```
 
-### 4. Apply Fixes
-
-```bash
-# Apply automatic fixes
-codetective fix codetective_scan_results.json --agents edit
-
-# Add explanatory comments instead
-codetective fix codetective_scan_results.json --agents comment
-```
-
-### 5. Launch Web GUI
+### 4. Launch Web GUI
 
 ```bash
 # Launch NiceGUI interface (default)
@@ -117,33 +109,21 @@ Execute multi-agent code scanning.
 codetective scan .
 codetective scan src/ tests/ --agents semgrep,trivy --timeout 600
 codetective scan . --output security_scan.json
-# Test with included vulnerable samples
-codetective scan vulnerable_code_samples.py --agents semgrep,trivy
 ```
 
 ### `codetective fix <json_file>`
 Apply automated fixes to identified issues.
 
 **Options:**
-- `-a, --agents`: Fix agents (comment,edit) (default: edit)
+- `-a, --agent`: Fix agent (comment,edit) (default: edit)
 - `--keep-backup`: Keep backup files after fix completion
 - `--selected-issues`: Comma-separated list of issue IDs to fix
 
 **Examples:**
 ```bash
 codetective fix scan_results.json
-codetective fix scan_results.json --agents comment
-codetective fix scan_results.json --keep-backup --selected-issues issue-1,issue-2
+codetective fix scan_results.json --agent comment
 ```
-
-### `codetective gui`
-Launch web interface.
-
-**Options:**
-- `--host`: Host to run on (default: localhost)
-- `--port`: Port to run on (default: 7891 for NiceGUI)
-
-
 
 ## Web GUI Usage
 
@@ -219,90 +199,30 @@ Codetective always outputs results in a standardized JSON format:
   - Focuses only on actual security vulnerabilities, not influenced by existing comments
   - Maintains original code structure and functionality
 
-## Testing Codetective
-
-### Vulnerable Code Samples
-
-The repository includes `vulnerable_code_samples.py` - a comprehensive test file containing intentionally vulnerable code patterns that demonstrate Codetective's detection capabilities:
-
-- **Hardcoded Secrets**: AWS keys, GitHub tokens, API keys, private keys
-- **Injection Vulnerabilities**: SQL injection, command injection
-- **Cryptographic Issues**: Weak hashing (MD5), unverified JWT tokens
-- **Network Security**: SSL verification bypass, unencrypted connections
-- **File Security**: Insecure temp files, overly permissive file permissions
-- **Deserialization**: Unsafe pickle and YAML loading
-
-Use this file to:
-- Test your Codetective installation
-- Verify scanner configurations
-- Demonstrate capabilities to stakeholders
-- Benchmark detection accuracy
-
-```bash
-# Quick test scan
-codetective scan vulnerable_code_samples.py
-
-# Test specific agents
-codetective scan vulnerable_code_samples.py --agents semgrep
-codetective scan vulnerable_code_samples.py --agents trivy
-```
-
-## Development
-
-### Setting up Development Environment
-
-```bash
-# Clone and install in development mode
-git clone https://github.com/codetective/codetective.git
-cd codetective
-pip install -e ".[dev]"
-
-# Run tests
-pytest
-
-# Format code
-black codetective/
-isort codetective/
-
-# Type checking
-mypy codetective/
-```
-
-### Running Tests
-
-```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=codetective
-
-# Run specific test file
-pytest tests/test_agents.py
-```
-
 ## Architecture
 
 Codetective uses a multi-agent architecture orchestrated by LangGraph:
 
 ```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   CLI/GUI       │    │   Orchestrator   │    │   Config        │
-│   Interface     │───▶│   (LangGraph)    │◀───│   Management    │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│   CLI/GUI       │     │   Orchestrator   │     │   Config        │
+│   Interface     │───▶│   (LangGraph)     │◀───│   Management    │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
                                 │
                 ┌───────────────┼───────────────┐
                 │               │               │
-        ┌───────▼──────┐ ┌──────▼──────┐ ┌─────▼──────┐
-        │ Scan Agents  │ │Output Agents│ │   Utils    │
-        │              │ │             │ │            │
-        │ • SemGrep    │ │ • Comment   │ │ • File I/O │
-        │ • Trivy      │ │ • Edit      │ │ • Validation│
-        │ • AI Review  │ │             │ │ • System   │
-        └──────────────┘ └─────────────┘ └────────────┘
+        ┌───────▼──────┐ ┌──────▼──────┐ ┌──────▼───────┐
+        │ Scan Agents  │ │Output Agents│ │   Utils      │
+        │              │ │             │ │              │
+        │ • SemGrep    │ │ • Comment   │ │ • File I/O   │
+        │ • Trivy      │ │ • Edit      │ │ • Validation │
+        │ • AI Review  │ │             │ │ • System     │
+        └──────────────┘ └─────────────┘ └──────────────┘
 ```
 
 ## Contributing
+
+Contributions to the Codetective are welcome. Follow the [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -312,13 +232,18 @@ Codetective uses a multi-agent architecture orchestrated by LangGraph:
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This application is open-source and is released under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License. See the [LICENSE](LICENSE) file for details.
 
-## Support
+Shield: [![CC BY-NC-SA 4.0][cc-by-nc-sa-shield]][cc-by-nc-sa]
 
-- 📖 Documentation: [GitHub Wiki](https://github.com/codetective/codetective/wiki)
-- 🐛 Bug Reports: [GitHub Issues](https://github.com/codetective/codetective/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/codetective/codetective/discussions)
+This work is licensed under a
+[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License][cc-by-nc-sa].
+
+[![CC BY-NC-SA 4.0][cc-by-nc-sa-image]][cc-by-nc-sa]
+
+[cc-by-nc-sa]: http://creativecommons.org/licenses/by-nc-sa/4.0/
+[cc-by-nc-sa-image]: https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png
+[cc-by-nc-sa-shield]: https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg
 
 ## Acknowledgments
 
