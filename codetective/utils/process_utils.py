@@ -5,14 +5,14 @@ Process utilities for Codetective - handle command execution and process managem
 import os
 import signal
 import subprocess
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 
 class ProcessUtils:
     """Utility class for process-related operations."""
 
     @staticmethod
-    def run_command(command: List[str], cwd: str = None, timeout: int = 900) -> Tuple[bool, str, str]:
+    def run_command(command: List[str], cwd: Optional[str] = None, timeout: Optional[int] = 900) -> Tuple[bool, str, str]:
         """Run a command and return success status, stdout, and stderr."""
         process = None
         try:
@@ -53,5 +53,5 @@ class ProcessUtils:
                 try:
                     process.terminate()
                 except Exception:
-                    print(f"Error terminating process")
+                    print("Error terminating process")
             return False, "", str(e)

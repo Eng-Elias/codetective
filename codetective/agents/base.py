@@ -36,8 +36,11 @@ class BaseAgent(ABC):
         self._execution_start_time = time.time()
 
     def _create_result(
-        self, success: bool, issues: Optional[List[Issue]] = None,
-        error_message: Optional[str] = None, metadata: Optional[Dict[str, Any]] = None
+        self,
+        success: bool,
+        issues: Optional[List[Issue]] = None,
+        error_message: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> AgentResult:
         """Create an AgentResult with timing information."""
         execution_time = time.time() - self._execution_start_time if self._execution_start_time else 0.0
