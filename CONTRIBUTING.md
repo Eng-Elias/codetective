@@ -101,6 +101,9 @@ Thank you for your interest in contributing to Codetective! This guide will help
    codetective scan codetective/
    ```
 
+5. **FOCUS Context**
+   While using AI IDEs (Windsurf, Cursor, etc.), try to follow the FOCUS context engineering framework as much as possible. (https://github.com/Eng-Elias/FOCUS--Context_Engineering)
+
 ### Before Committing
 
 1. **Final Code Quality Check**
