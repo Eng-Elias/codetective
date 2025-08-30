@@ -252,3 +252,4 @@ This work is licensed under a
 - [Ollama](https://ollama.ai/) for local AI model serving
 - [LangGraph](https://langchain-ai.github.io/langgraph/) for agent orchestration
 - [NiceGUI](https://nicegui.io/) for the modern web interface
+- [FOCUS--Context-Engineering](https://github.com/Eng-Elias/FOCUS--Context_Engineering) for AI IDEs (Windsurf, Cursor, etc.)
