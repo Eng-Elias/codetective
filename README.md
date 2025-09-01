@@ -2,6 +2,11 @@
 
 A comprehensive code analysis tool that combines multiple scanning engines (SemGrep, Trivy, AI) with automated fixing capabilities using LangGraph orchestration.
 
+https://youtu.be/cmb_k1Je8zs
+
+# video
+[![Youtube Video](./screenshots/Brand/thumbnail.png)](https://youtu.be/cmb_k1Je8zs)
+
 ## Features
 
 - **Multi-Agent Scanning**: Combines SemGrep, Trivy, and AI-powered analysis
@@ -111,6 +116,8 @@ codetective gui --host 0.0.0.0 --port 7891
 ```
 
 Then open your browser to `http://localhost:7891` (NiceGUI)
+
+![Codetective GUI](./screenshots/GUI/Codetective_GUI.gif)
 
 ## CLI Commands
 
