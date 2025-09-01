@@ -2,8 +2,6 @@
 
 A comprehensive code analysis tool that combines multiple scanning engines (SemGrep, Trivy, AI) with automated fixing capabilities using LangGraph orchestration.
 
-https://youtu.be/cmb_k1Je8zs
-
 # video
 [![Youtube Video](./screenshots/Brand/thumbnail.png)](https://youtu.be/cmb_k1Je8zs)
 
