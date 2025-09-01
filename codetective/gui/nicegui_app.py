@@ -50,12 +50,12 @@ class CodeDetectiveApp:
         self.scan_mode: str = "Full Project Scan"
 
         # UI components
-        self.main_content: Column = Column()
-        self.sidebar: LeftDrawer = LeftDrawer()
-        self.progress_container: Column = Column()
-        self.file_selection_container: Column = Column()
-        self.selected_issues_label: Label = Label()
-        self.proceed_button: Button = Button()
+        self.main_content: Column
+        self.sidebar: LeftDrawer
+        self.progress_container: Column
+        self.file_selection_container: Column
+        self.selected_issues_label: Label
+        self.proceed_button: Button
 
         # System info
         self.system_info = SystemUtils.get_system_info()
@@ -148,7 +148,7 @@ class CodeDetectiveApp:
     def on_project_path_change(self, e: ValueChangeEventArguments) -> None:
         """Handle project path input change."""
         self.project_path = e.value
-        if self.file_selection_container:
+        if getattr(self, "file_selection_container", None):
             self.update_file_selection_info()
 
     def validate_project_path(self) -> None:
