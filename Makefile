@@ -144,7 +144,7 @@ beta-release: prepare-release build upload-test
 	@echo "Beta release uploaded to TestPyPI"
 	@echo "Test with: pip install -i https://test.pypi.org/simple/ codetective"
 
-beta-release-win: prepare-release-win build upload-test-win
+beta-release-win: prepare-release-win build-win upload-test-win
 	@echo "Beta release uploaded to TestPyPI"
 	@echo "Test with: pip install -i https://test.pypi.org/simple/ codetective"
 
@@ -152,7 +152,7 @@ production-release: prepare-release build upload
 	@echo "Production release uploaded to PyPI"
 	@echo "Install with: pip install codetective"
 
-production-release-win: prepare-release-win build upload-win
+production-release-win: prepare-release-win build-win upload-win
 	@echo "Production release uploaded to PyPI"
 	@echo "Install with: pip install codetective"
 
