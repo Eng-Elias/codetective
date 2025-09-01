@@ -41,6 +41,7 @@ make setup-tools
 # Install Ollama (visit https://ollama.ai)
 # Pull recommended AI model
 ollama pull qwen3:4b
+ollama start
 
 # Install Trivy (follow official docs at https://aquasecurity.github.io/trivy/latest/getting-started/installation/)
 ```

@@ -29,6 +29,7 @@ Before installing Codetective, ensure you have the following tools installed:
 4. **Ollama** (optional, for AI features):
    - Download from: https://ollama.ai/download
    - Install a code model: `ollama pull codellama`
+   - Start Ollama: `ollama start`
 
 ### Install Codetective
 
@@ -49,6 +50,10 @@ pip install codetective
 ## Quick Start
 
 ### 1. Check System Compatibility
+
+```bash
+ollama start
+```
 
 ```bash
 codetective info
