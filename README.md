@@ -61,6 +61,8 @@ codetective info
 
 This will show you which tools are available and their versions.
 
+![codetective_info](./screenshots/CLI/00_codetective_info.png)
+
 ### 2. Run a Code Scan
 
 ```bash
@@ -74,15 +76,29 @@ codetective scan /path/to/code --agents semgrep,trivy --timeout 600
 codetective scan . --output my_scan_results.json
 ```
 
+![vulnerable_script_py](./screenshots/CLI/01_vulnerable_script_py.png)
+
+![codetective_scan](./screenshots/CLI/02_codetective_scan.png)
+
 ### 3. Apply Fixes
 
 ```bash
 # Apply automatic fixes
 codetective fix codetective_scan_results.json
+```
 
+![codetective_fix](./screenshots/CLI/03_codetective_edit_fix.png)
+
+![fixed_vulnerable_script_py](./screenshots/CLI/04_fixed_vulnerable_script.png)
+
+```bash
 # Add explanatory comments instead
 codetective fix codetective_scan_results.json --agent comment
 ```
+
+![codetective_comment](./screenshots/CLI/05_codetective_comment_fix.png)
+
+![commented_vulnerable_script_py](./screenshots/CLI/06_commented_vulnerable_script.png)
 
 ### 4. Launch Web GUI
 
