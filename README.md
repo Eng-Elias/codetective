@@ -1,3 +1,4 @@
+![Logo](./screenshots/Brand/transparent_logo.png)
 # 🔍 Codetective - Multi-Agent Code Review Tool
 
 A comprehensive code analysis tool that combines multiple scanning engines (SemGrep, Trivy, AI) with automated fixing capabilities using LangGraph orchestration.
