@@ -1,10 +1,10 @@
-![Logo](./screenshots/Brand/transparent_logo.png)
+![Logo](https://github.com/Eng-Elias/codetective/blob/main/screenshots/Brand/transparent_logo.png?raw=true)
 # 🔍 Codetective - Multi-Agent Code Review Tool
 
 A comprehensive code analysis tool that combines multiple scanning engines (SemGrep, Trivy, AI) with automated fixing capabilities using LangGraph orchestration.
 
 # video
-[![Youtube Video](./screenshots/Brand/thumbnail.png)](https://youtu.be/cmb_k1Je8zs)
+[![Youtube Video](https://github.com/Eng-Elias/codetective/blob/main/screenshots/Brand/thumbnail.png?raw=true)](https://youtu.be/cmb_k1Je8zs)
 
 ## Features
 
@@ -65,7 +65,7 @@ codetective info
 
 This will show you which tools are available and their versions.
 
-![codetective_info](./screenshots/CLI/00_codetective_info.png)
+![codetective_info](https://github.com/Eng-Elias/codetective/blob/main/screenshots/CLI/00_codetective_info.png?raw=true)
 
 ### 2. Run a Code Scan
 
@@ -80,9 +80,9 @@ codetective scan /path/to/code --agents semgrep,trivy --timeout 600
 codetective scan . --output my_scan_results.json
 ```
 
-![vulnerable_script_py](./screenshots/CLI/01_vulnerable_script_py.png)
+![vulnerable_script_py](https://github.com/Eng-Elias/codetective/blob/main/screenshots/CLI/01_vulnerable_script_py.png?raw=true)
 
-![codetective_scan](./screenshots/CLI/02_codetective_scan.png)
+![codetective_scan](https://github.com/Eng-Elias/codetective/blob/main/screenshots/CLI/02_codetective_scan.png?raw=true)
 
 ### 3. Apply Fixes
 
@@ -91,18 +91,18 @@ codetective scan . --output my_scan_results.json
 codetective fix codetective_scan_results.json
 ```
 
-![codetective_fix](./screenshots/CLI/03_codetective_edit_fix.png)
+![codetective_fix](https://github.com/Eng-Elias/codetective/blob/main/screenshots/CLI/03_codetective_edit_fix.png?raw=true)
 
-![fixed_vulnerable_script_py](./screenshots/CLI/04_fixed_vulnerable_script.png)
+![fixed_vulnerable_script_py](https://github.com/Eng-Elias/codetective/blob/main/screenshots/CLI/04_fixed_vulnerable_script.png?raw=true)
 
 ```bash
 # Add explanatory comments instead
 codetective fix codetective_scan_results.json --agent comment
 ```
 
-![codetective_comment](./screenshots/CLI/05_codetective_comment_fix.png)
+![codetective_comment](https://github.com/Eng-Elias/codetective/blob/main/screenshots/CLI/05_codetective_comment_fix.png?raw=true)
 
-![commented_vulnerable_script_py](./screenshots/CLI/06_commented_vulnerable_script.png)
+![commented_vulnerable_script_py](https://github.com/Eng-Elias/codetective/blob/main/screenshots/CLI/06_commented_vulnerable_script.png?raw=true)
 
 ### 4. Launch Web GUI
 
@@ -116,7 +116,7 @@ codetective gui --host 0.0.0.0 --port 7891
 
 Then open your browser to `http://localhost:7891` (NiceGUI)
 
-![Codetective GUI](./screenshots/GUI/Codetective_GUI.gif)
+![Codetective GUI](https://github.com/Eng-Elias/codetective/blob/main/screenshots/GUI/Codetective_GUI.gif?raw=true)
 
 ## CLI Commands
 
