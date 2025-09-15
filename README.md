@@ -107,7 +107,7 @@ codetective fix codetective_scan_results.json --agent comment
 ### 4. Launch Web GUI
 
 ```bash
-# Launch NiceGUI interface (default)
+# Launch NiceGUI interface
 codetective gui
 
 # Custom host and port
@@ -156,7 +156,7 @@ codetective fix scan_results.json --agent comment
 
 Codetective offers a modern web interface:
 
-### NiceGUI Interface (Default)
+### NiceGUI Interface
 A modern, responsive web interface with better state management and real-time updates.
 
 ### 1. Project Selection
