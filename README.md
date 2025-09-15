@@ -3,10 +3,20 @@
 
 A comprehensive code analysis tool that combines multiple scanning engines (SemGrep, Trivy, AI) with automated fixing capabilities using LangGraph orchestration.
 
+# Why Codetective?
+
+Modern codebases mix application logic, third‑party libraries, infrastructure as code, and configuration spread across many files and services. Traditional single‑tool scanners catch some classes of issues but often miss others, and they rarely offer actionable fixes. Codetective approaches the problem as a coordinated, multi‑agent system: specialized agents analyze code through different lenses (pattern‑based SAST, dependency and misconfiguration scanning, and AI‑assisted review), while an orchestrator stitches their findings into a coherent story and can automatically suggest or apply improvements. The result is a practical workflow that not only detects problems, but also helps teams remediate them quickly.
+
+In other words, Codetective is designed to be useful during day‑to‑day development and code review. It integrates cleanly into CLI and GUI flows, produces a standard JSON output you can consume in CI, and—when enabled—uses a local LLM to generate comments or edits that explain “why” and “how” to fix issues in context.
+
 # video
 [![Youtube Video](https://github.com/Eng-Elias/codetective/blob/main/screenshots/Brand/thumbnail.png?raw=true)](https://youtu.be/cmb_k1Je8zs)
 
 ## Features
+
+Codetective merges a few core ideas into one developer‑friendly workflow. It combines specialized agents (SemGrep, Trivy, and an AI reviewer) to surface issues from different angles, and it uses an orchestrator to sequence and aggregate results. In practice, you run a scan on your repository, review the unified findings, and optionally apply automated fixes or insert concise explanatory comments. Everything is available from the command line and a streamlined web interface.
+
+Key capabilities include multi‑agent scanning, automated fixing, a JSON results format for downstream tooling, and a configurable runtime that can execute agents sequentially or in parallel. The system is built to be practical: it can run with or without AI features, and it aims to provide explanations that are short enough to be helpful in code reviews.
 
 - **Multi-Agent Scanning**: Combines SemGrep, Trivy, and AI-powered analysis
 - **Automated Fixing**: AI-powered code fixes and explanatory comments
@@ -260,6 +270,20 @@ Codetective always outputs results in a standardized JSON format:
   - Input: Existing `Issue` list (from scan results).
   - Output: Updated `Issue` list with statuses (`FIXED`/`FAILED`) and list of modified files.
   - Strategy: Batches fixes to avoid context shifts; preserves structure/formatting.
+
+## Reliability and Error Handling
+
+Codetective is built to fail safely and keep you informed. The orchestrator in `core/orchestrator.py` records per‑agent errors without halting the entire run: during sequential scans, `_run_all_agents()` wraps each agent in `try/except` and appends human‑readable messages to `error_messages`; during parallel scans, the `ThreadPoolExecutor` loop captures exceptions from futures and prints a clear note while still aggregating results from successful agents. This means a transient failure in, say, Trivy, won’t prevent SemGrep or the AI reviewer from completing.
+
+External processes are executed through `utils/process_utils.py::run_command()`, which applies timeouts (configurable via `Config.agent_timeout`) and attempts graceful termination (`SIGTERM`) before forceful termination when supported by the OS. Output is always captured as text with replacement for invalid characters so logs remain readable. On timeout, the function returns a failed status with a descriptive message rather than raising, allowing upstream code to handle it predictably.
+
+Agents check their own readiness. For example, `SemGrepAgent.is_available()` and `TrivyAgent.is_available()` verify tool availability via `utils/system_utils.py`; the AI‑based agents inherit from `agents/ai_base.py`, where `is_ai_available()` verifies Ollama connectivity and `call_ai()` centralizes error handling. When Ollama is unreachable, users see a specific, actionable error string (e.g., model not found, connection refused).
+
+When modifying files, safety comes first. The `CommentAgent` and `EditAgent` can create backup files prior to changes and respect the `keep_backup` setting in `Config`. The comment agent formats annotations using the host language’s comment style, preserves indentation, and handles edge cases such as unknown line numbers by placing notes at the file head. The edit agent processes issues in stable batches to avoid line‑shift hazards and writes back only when a meaningful change has been produced by the model.
+
+Input scope is bounded to keep runs stable and fast. `utils/file_utils.py` validates paths, respects `.gitignore`, enforces maximum file size (`Config.max_file_size`), and allows inclusion/exclusion patterns, while `utils/git_utils.py` can focus on tracked or changed files. Together, they reduce noise and resource usage on large repositories.
+
+Finally, results are standardized. Both scan and fix operations serialize their outputs (`models/schemas.py`) with timestamps, durations, and per‑agent summaries. This makes failures auditable and performance measurable across runs, even when some agents are temporarily unavailable.
 
 ## Architecture
 
