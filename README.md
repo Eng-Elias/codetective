@@ -226,6 +226,41 @@ Codetective always outputs results in a standardized JSON format:
   - Focuses only on actual security vulnerabilities, not influenced by existing comments
   - Maintains original code structure and functionality
 
+## Agent Roles and Responsibilities
+
+- **SemGrepAgent (`agents/scan/semgrep_agent.py`)**
+  - Purpose: Pattern-based SAST scanning using community and registry rules.
+  - Input: Project paths or files.
+  - Output: `Issue` list with `rule_id`, `severity`, `file_path`, `line_number`, and optional autofix hint as `fix_suggestion`.
+  - Strengths: Fast, broad language support, customizable rules. Great for secure coding patterns and known antipatterns.
+  - Limitations: Rule-based (may miss logic flaws). Quality depends on rule set.
+
+- **TrivyAgent (`agents/scan/trivy_agent.py`)**
+  - Purpose: Detects vulnerabilities in dependencies, secrets, and misconfigurations across files and IaC.
+  - Input: Paths (directories or files).
+  - Output: `Issue` list synthesized from Trivy JSON: Vulnerabilities (`VulnerabilityID`), Secrets, and Misconfigurations.
+  - Strengths: Broad coverage of OS packages, language deps, IaC; easy CI integration.
+  - Limitations: Not a replacement for SAST logic analysis; complements Semgrep. See Trivy scope for details.
+
+- **DynamicAIReviewAgent (`agents/scan/dynamic_ai_review_agent.py`)**
+  - Purpose: LLM-driven code review with optional tool-use (web search) to reason about security and code quality.
+  - Input: Supported source files (common languages), limited file count for performance.
+  - Output: `Issue` entries summarizing key risks and recommendations (consolidated per file).
+  - Strengths: Captures context-driven issues and best-practice gaps beyond rules.
+  - Limitations: Requires Ollama running; response quality depends on model.
+
+- **CommentAgent (`agents/output/comment_agent.py`)**
+  - Purpose: Writes concise explanatory comments adjacent to problematic lines.
+  - Input: Existing `Issue` list (from scan results).
+  - Output: Updated `Issue` list (status remains detected/failed) and modified files (if applicable).
+  - Notes: Preserves indentation, adapts comment style per file type, and supports backup files.
+
+- **EditAgent (`agents/output/edit_agent.py`)**
+  - Purpose: Generates and applies minimal, targeted fixes to code.
+  - Input: Existing `Issue` list (from scan results).
+  - Output: Updated `Issue` list with statuses (`FIXED`/`FAILED`) and list of modified files.
+  - Strategy: Batches fixes to avoid context shifts; preserves structure/formatting.
+
 ## Architecture
 
 Codetective uses a multi-agent architecture orchestrated by LangGraph:
