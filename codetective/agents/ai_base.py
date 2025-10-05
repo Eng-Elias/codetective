@@ -2,7 +2,6 @@
 Base class for AI-powered agents using ChatOllama.
 """
 
-from langchain.schema import HumanMessage
 from langchain_ollama import ChatOllama
 
 from codetective.core.config import Config
@@ -38,8 +37,7 @@ class AIAgent:
             if temperature != 0.1:
                 self._llm = ChatOllama(base_url=self.ollama_url, model=self.model, temperature=temperature)
 
-            message = HumanMessage(content=prompt)
-            response = self.llm.invoke([message])
+            response = self.llm.invoke(prompt)
             return str(response.content)
         except Exception as e:
             error_msg = self._format_ai_error(e)

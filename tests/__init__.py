@@ -1,0 +1,3 @@
+"""
+Codetective test suite.
+"""
