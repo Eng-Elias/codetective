@@ -15,7 +15,16 @@
 
 ### Phase 1: Testing Infrastructure (Priority: HIGH)
 **Goal**: Achieve 70%+ test coverage for core functionality
-**Status**: ✅ COMPLETED - 173 tests passing, 45%+ coverage baseline established
+**Status**: 🔄 IN PROGRESS - Phase 1A Complete (173 tests), Phase 1B Starting (Coverage Push)
+
+#### Phase 1A: Test Framework ✅ COMPLETE
+- 173 passing tests
+- 45.92% coverage baseline
+- All infrastructure in place
+
+#### Phase 1B: Coverage Improvement to 70%+ 🎯 CURRENT FOCUS
+**Target**: Reach 70%+ coverage by adding strategic unit tests
+**Strategy**: Exclude CLI (integration-heavy), focus on core business logic
 
 #### Task 1.1: Unit Testing Framework Setup ✅
 - ✅ Create `tests/` directory structure with unit, integration, e2e folders
@@ -43,6 +52,60 @@
 - ✅ `tests/unit/test_process_utils.py` - Test command execution, timeout handling, output capture (14 tests)
 - [ ] `tests/unit/test_string_utils.py` - Test string manipulation, sanitization, cleaning
 - [ ] `tests/unit/test_system_utils.py` - Test tool availability checks, system compatibility
+
+#### Task 1.4B: Phase 1B Priority Tests (Coverage Push to 70%+) 🎯
+**Objective**: Add strategic unit tests to reach 70%+ coverage
+
+**HIGH-IMPACT TESTS (Big Coverage Gains):**
+- [ ] 🔴 **test_orchestrator.py** - CRITICAL (14.83% → 70%+, +8% impact)
+  - Agent initialization and configuration
+  - LangGraph state management
+  - Parallel vs sequential execution modes
+  - Result aggregation across agents
+  - Error handling and recovery
+  - Agent coordination workflows
+  
+- [ ] 🟡 **test_dynamic_ai_review_agent.py** - HIGH PRIORITY (15.38% → 70%+, +4% impact)
+  - Code review prompt generation
+  - AI response parsing and validation
+  - Fallback mode handling
+  - Issue extraction from responses
+  - Severity mapping and categorization
+  - ChatOllama integration mocking
+
+- [ ] 🟡 **Expand test_output_agents.py** - HIGH PRIORITY (58.60% → 75%+, +2% impact)
+  - EditAgent fix validation logic
+  - Batch file processing edge cases
+  - File write operation error handling
+  - Backup restoration scenarios
+  - Invalid fix detection
+
+**QUICK WIN TESTS (Small Modules, Easy Coverage):**
+- [ ] 🟢 **test_string_utils.py** - QUICK WIN (20% → 80%+, +1% impact)
+  - String sanitization functions
+  - Code cleaning utilities
+  - Format conversion helpers
+  
+- [ ] 🟢 **test_system_utils.py** - QUICK WIN (38% → 75%+, +1.5% impact)
+  - Tool availability detection
+  - Platform-specific checks
+  - Required tools validation
+  - System compatibility checks
+
+**MEDIUM-IMPACT TESTS (Steady Improvements):**
+- [ ] 🟢 **Expand test_git_utils.py** - MEDIUM (44% → 75%+, +2% impact)
+  - Enhanced file selection logic
+  - Tree structure building
+  - Git diff operations
+  - Untracked file handling
+  
+- [ ] 🟢 **test_prompt_builder.py** - MEDIUM (42% → 75%+, +1.5% impact)
+  - Template rendering
+  - Context variable substitution
+  - Structured prompt generation
+  - Issue formatting
+
+**Coverage Target After Phase 1B**: 70-72% ✅
 
 #### Task 1.5: Integration Tests
 - [ ] `tests/integration/test_scan_workflow.py` - Test full scan pipeline with real tools

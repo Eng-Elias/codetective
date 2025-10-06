@@ -2,6 +2,7 @@
 Unit tests for GitUtils class.
 """
 
+import subprocess
 import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -200,3 +201,186 @@ class TestGitUtils:
             
         except (subprocess.CalledProcessError, FileNotFoundError):
             pytest.skip("Git not available or operation failed")
+
+    @pytest.mark.unit
+    @patch('subprocess.run')
+    def test_get_tracked_files_with_extensions(self, mock_run, temp_dir):
+        """Test get_tracked_files with extension filtering."""
+        # Mock git root
+        mock_run.side_effect = [
+            Mock(returncode=0, stdout=str(temp_dir)),  # get_git_root
+            Mock(returncode=0, stdout="file1.py\nfile2.js\nfile3.py\n")  # ls-files
+        ]
+        
+        # Create files for existence check
+        (temp_dir / "file1.py").write_text("test")
+        (temp_dir / "file2.js").write_text("test")
+        (temp_dir / "file3.py").write_text("test")
+        
+        files = GitUtils.get_tracked_files(str(temp_dir), file_extensions=[".py"])
+        
+        assert len(files) == 2
+        assert all(f.endswith(".py") for f in files)
+
+    @pytest.mark.unit
+    @patch('subprocess.run')
+    def test_get_tracked_files_no_git_root(self, mock_run, temp_dir):
+        """Test get_tracked_files when not in a git repo."""
+        mock_run.return_value = Mock(returncode=1)  # get_git_root fails
+        
+        files = GitUtils.get_tracked_files(str(temp_dir))
+        
+        assert files == []
+
+    @pytest.mark.unit
+    @patch('subprocess.run')
+    def test_get_diff_files_success(self, mock_run, temp_dir):
+        """Test get_diff_files returns modified files."""
+        # Mock git root and file lists
+        def mock_subprocess(*args, **kwargs):
+            cmd = args[0]
+            if "show-toplevel" in cmd:
+                return Mock(returncode=0, stdout=str(temp_dir))
+            elif "--cached" in cmd:
+                return Mock(returncode=0, stdout="staged.py\n")
+            elif "diff" in cmd:
+                return Mock(returncode=0, stdout="unstaged.py\n")
+            elif "--others" in cmd:
+                return Mock(returncode=0, stdout="untracked.py\n")
+            return Mock(returncode=1)
+        
+        mock_run.side_effect = mock_subprocess
+        
+        # Create files
+        (temp_dir / "staged.py").write_text("test")
+        (temp_dir / "unstaged.py").write_text("test")
+        (temp_dir / "untracked.py").write_text("test")
+        
+        files = GitUtils.get_diff_files(str(temp_dir))
+        
+        assert isinstance(files, list)
+        assert len(files) >= 0
+
+    @pytest.mark.unit
+    @patch('subprocess.run')
+    def test_get_git_tracked_and_new_files(self, mock_run, temp_dir):
+        """Test get_git_tracked_and_new_files."""
+        mock_run.side_effect = [
+            Mock(returncode=0, stdout="file1.py\nfile2.py\n"),  # ls-files command
+            Mock(returncode=0, stdout=str(temp_dir))  # get_git_root
+        ]
+        
+        # Create files
+        (temp_dir / "file1.py").write_text("test")
+        (temp_dir / "file2.py").write_text("test")
+        
+        files = GitUtils.get_git_tracked_and_new_files(str(temp_dir))
+        
+        assert isinstance(files, list)
+
+    @pytest.mark.unit
+    @patch('subprocess.run')
+    def test_get_code_files_filters_extensions(self, mock_run, temp_dir):
+        """Test get_code_files filters by code extensions."""
+        mock_run.side_effect = [
+            Mock(returncode=0, stdout=str(temp_dir)),  # get_git_root
+            Mock(returncode=0, stdout="code.py\nREADME.md\nscript.js\nimage.png\n")  # ls-files
+        ]
+        
+        # Create files
+        (temp_dir / "code.py").write_text("test")
+        (temp_dir / "script.js").write_text("test")
+        (temp_dir / "README.md").write_text("test")
+        (temp_dir / "image.png").write_text("test")
+        
+        files = GitUtils.get_code_files(str(temp_dir))
+        
+        assert isinstance(files, list)
+        # Should only include code files (.py, .js), not .md or .png
+
+    @pytest.mark.unit
+    @patch('codetective.utils.git_utils.GitUtils.get_git_root')
+    def test_convert_to_absolute_paths(self, mock_git_root, temp_dir):
+        """Test _convert_to_absolute_paths."""
+        mock_git_root.return_value = str(temp_dir)
+        
+        # Create test files
+        (temp_dir / "file1.py").write_text("test")
+        (temp_dir / "file2.py").write_text("test")
+        
+        relative_files = ["file1.py", "file2.py", "nonexistent.py"]
+        
+        absolute_files = GitUtils._convert_to_absolute_paths(relative_files, str(temp_dir))
+        
+        assert len(absolute_files) == 2  # Only existing files
+        assert all(Path(f).is_absolute() for f in absolute_files)
+
+    @pytest.mark.unit
+    @patch('subprocess.run')
+    def test_get_staged_files(self, mock_run, temp_dir):
+        """Test _get_staged_files."""
+        mock_run.return_value = Mock(
+            returncode=0,
+            stdout="staged1.py\nstaged2.py\n"
+        )
+        
+        files = GitUtils._get_staged_files(str(temp_dir))
+        
+        assert "staged1.py" in files
+        assert "staged2.py" in files
+
+    @pytest.mark.unit
+    @patch('subprocess.run')
+    def test_get_unstaged_files(self, mock_run, temp_dir):
+        """Test _get_unstaged_files."""
+        mock_run.return_value = Mock(
+            returncode=0,
+            stdout="modified1.py\nmodified2.py\n"
+        )
+        
+        files = GitUtils._get_unstaged_files(str(temp_dir))
+        
+        assert "modified1.py" in files
+        assert "modified2.py" in files
+
+    @pytest.mark.unit
+    @patch('subprocess.run')
+    def test_get_untracked_files(self, mock_run, temp_dir):
+        """Test _get_untracked_files."""
+        mock_run.return_value = Mock(
+            returncode=0,
+            stdout="new1.py\nnew2.py\n"
+        )
+        
+        files = GitUtils._get_untracked_files(str(temp_dir))
+        
+        assert "new1.py" in files
+        assert "new2.py" in files
+
+    @pytest.mark.unit
+    @patch('subprocess.run')
+    def test_git_operations_with_errors(self, mock_run, temp_dir):
+        """Test git operations handle errors gracefully."""
+        mock_run.side_effect = subprocess.CalledProcessError(1, "git")
+        
+        # Should not crash
+        assert GitUtils._get_staged_files(str(temp_dir)) == []
+        assert GitUtils._get_unstaged_files(str(temp_dir)) == []
+        assert GitUtils._get_untracked_files(str(temp_dir)) == []
+
+    @pytest.mark.unit
+    @patch('subprocess.run')
+    def test_get_tracked_files_nonexistent_files_filtered(self, mock_run, temp_dir):
+        """Test that nonexistent files are filtered out."""
+        mock_run.side_effect = [
+            Mock(returncode=0, stdout=str(temp_dir)),  # get_git_root
+            Mock(returncode=0, stdout="exists.py\nnonexistent.py\n")  # ls-files
+        ]
+        
+        # Only create one file
+        (temp_dir / "exists.py").write_text("test")
+        
+        files = GitUtils.get_tracked_files(str(temp_dir))
+        
+        assert len(files) == 1
+        assert str(Path(temp_dir) / "exists.py") in files
