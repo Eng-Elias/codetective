@@ -31,44 +31,39 @@ class AIAgent:
         available, _ = SystemUtils.check_tool_availability(RequiredTools.OLLAMA)
         return available
 
-    def call_ai(self, prompt: str, temperature: float = 0.1, code: str = None) -> str:
+    def call_ai(self, prompt: str, temperature: float = 0.7, code: str = None) -> str:
         """
-        Call AI with security validation and consistent error handling.
-        
+        Call AI with the given prompt.
+
         Args:
             prompt: The prompt to send to the AI
-            temperature: Temperature setting for the AI
-            code: Optional code block to validate separately
-            
+            temperature: Temperature for response generation
+            code: Optional code block to include in the prompt
+
         Returns:
-            Sanitized AI response
-            
-        Raises:
-            PromptInjectionDetected: If prompt injection is detected
-            Exception: For other AI errors
+            AI response as string
         """
         try:
-            # Validate and sanitize inputs using PromptGuard
+            # ===== INPUT VALIDATION (PromptGuard) =====
+            # Validate and sanitize USER inputs before sending to AI
             sanitized_prompt, sanitized_code = PromptGuard.validate_ai_input(prompt, code)
             
             # Combine if code was provided
             if sanitized_code:
-                final_prompt = f"{sanitized_prompt}\n\n```\n{sanitized_code}\n```"
+                final_prompt = f"{sanitized_prompt}\n\nCode:\n```\n{sanitized_code}\n```"
             else:
                 final_prompt = sanitized_prompt
-            
-            # Update temperature if different from default
-            if temperature != 0.1:
-                self._llm = ChatOllama(base_url=self.ollama_url, model=self.model, temperature=temperature)
 
+            # Set temperature for this call
+            self.llm.temperature = temperature
+
+            # Make the API call
             response = self.llm.invoke(final_prompt)
             response_content = str(response.content)
             
-            # Validate and sanitize output
-            safe_response = PromptGuard.validate_ai_output(response_content)
-            
-            # Apply output filtering for sensitive data and AI response patterns
-            safe_response = OutputFilter.sanitize_ai_response(safe_response)
+            # ===== OUTPUT VALIDATION (OutputFilter) =====
+            # Sanitize AI-generated OUTPUT before returning
+            safe_response = OutputFilter.sanitize_ai_response(response_content)
             
             return safe_response
             

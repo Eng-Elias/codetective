@@ -1,11 +1,15 @@
 """
 Output filtering and sanitization for Codetective.
 
-Provides security controls for:
-- Filtering sensitive information from logs and outputs
-- Sanitizing AI-generated code suggestions
-- Validating fix outputs before file modification
-- Malicious code pattern detection
+Provides OUTPUT VALIDATION security controls for:
+- Filtering sensitive information from AI OUTPUTS and logs
+- Sanitizing AI-generated responses
+- Validating AI-generated code fixes BEFORE applying to files
+- Detecting malicious code in GENERATED outputs
+- Filtering sensitive data from scan results and file outputs
+
+NOTE: This module is for OUTPUT validation only.
+For INPUT validation (user prompts, prompt injection), use PromptGuard.
 """
 
 import re

@@ -1,11 +1,14 @@
 """
 Prompt injection protection for Codetective.
 
-Provides security controls for:
-- Detecting and preventing prompt injection attacks
-- Content safety filtering for AI inputs/outputs
-- Token limit enforcement
-- Suspicious pattern detection
+Provides INPUT VALIDATION security controls for:
+- Detecting and preventing prompt injection attacks in USER INPUTS
+- Input sanitization and length enforcement
+- Validating prompts BEFORE sending to AI
+- Protecting against malicious user-provided content
+
+NOTE: This module is for INPUT validation only.
+For OUTPUT validation (AI responses, generated code), use OutputFilter.
 """
 
 import re
@@ -69,24 +72,9 @@ class PromptGuard:
         r"what\s+(are|were)\s+your\s+(original\s+)?(instructions|prompt)",
     ]
 
-    # Suspicious code patterns in comments
-    SUSPICIOUS_CODE_PATTERNS = [
-        r"eval\s*\(",  # Eval usage
-        r"exec\s*\(",  # Exec usage
-        r"__import__",  # Dynamic imports
-        r"subprocess\.(call|run|Popen)",  # Subprocess execution
-        r"os\.system",  # OS command execution
-        r"open\s*\([^,]+,\s*['\"]w",  # File writing in suspicious context
-    ]
-
-    # Sensitive data patterns
-    SENSITIVE_PATTERNS = [
-        r"(?i)(api[_-]?key|apikey)\s*[:=]\s*['\"]?([a-zA-Z0-9_\-]{20,})",
-        r"(?i)(secret[_-]?key|secretkey)\s*[:=]\s*['\"]?([a-zA-Z0-9_\-]{20,})",
-        r"(?i)(password|passwd|pwd)\s*[:=]\s*['\"]?([^\s'\"]{8,})",
-        r"(?i)(token|auth[_-]?token)\s*[:=]\s*['\"]?([a-zA-Z0-9_\-]{20,})",
-        r"(?i)(access[_-]?key|accesskey)\s*[:=]\s*['\"]?([A-Z0-9]{16,})",
-    ]
+    # NOTE: Removed SUSPICIOUS_CODE_PATTERNS and SENSITIVE_PATTERNS.
+    # These are now in OutputFilter for OUTPUT validation.
+    # PromptGuard focuses on INPUT validation (prompt injection, sanitization).
 
     @staticmethod
     def check_prompt_injection(text: str, raise_on_detection: bool = True) -> Tuple[bool, List[str]]:
@@ -117,26 +105,8 @@ class PromptGuard:
 
         return len(detected_patterns) == 0, detected_patterns
 
-    @staticmethod
-    def check_suspicious_code(code: str, context: str = "code") -> Tuple[bool, List[str]]:
-        """
-        Check for suspicious code patterns.
-
-        Args:
-            code: Code to check
-            context: Context description for error messages
-
-        Returns:
-            Tuple of (is_safe, detected_patterns)
-        """
-        detected_patterns = []
-
-        for pattern in PromptGuard.SUSPICIOUS_CODE_PATTERNS:
-            matches = re.findall(pattern, code, re.IGNORECASE)
-            if matches:
-                detected_patterns.append(pattern)
-
-        return len(detected_patterns) == 0, detected_patterns
+    # REMOVED: check_suspicious_code() - moved to OutputFilter
+    # Use OutputFilter.detect_dangerous_functions() for code validation
 
     @staticmethod
     def sanitize_prompt(text: str) -> str:
@@ -206,62 +176,11 @@ class PromptGuard:
                 f"Prompt too long: {len(text)} characters (max: {max_length})"
             )
 
-    @staticmethod
-    def check_sensitive_data(text: str) -> Tuple[bool, List[str]]:
-        """
-        Check for potential sensitive data exposure.
+    # REMOVED: check_sensitive_data() - moved to OutputFilter
+    # Use OutputFilter.detect_sensitive_data() for output validation
 
-        Args:
-            text: Text to check
-
-        Returns:
-            Tuple of (is_safe, detected_patterns)
-        """
-        detected_patterns = []
-
-        for pattern in PromptGuard.SENSITIVE_PATTERNS:
-            matches = re.findall(pattern, text)
-            if matches:
-                # Don't include the actual matched values in the pattern
-                detected_patterns.append(f"Potential sensitive data: {pattern[:50]}...")
-
-        return len(detected_patterns) == 0, detected_patterns
-
-    @staticmethod
-    def filter_sensitive_data(text: str) -> str:
-        """
-        Filter out potential sensitive data from text.
-
-        Args:
-            text: Text to filter
-
-        Returns:
-            Filtered text with sensitive data redacted
-        """
-        filtered = text
-
-        # Redact API keys and tokens
-        filtered = re.sub(
-            r"(?i)(api[_-]?key|apikey)\s*[:=]\s*['\"]?([a-zA-Z0-9_\-]{20,})['\"]?",
-            lambda m: f"{m.group(1)}=***REDACTED***",
-            filtered
-        )
-
-        # Redact secrets
-        filtered = re.sub(
-            r"(?i)(secret[_-]?key|secretkey|password|passwd|pwd)\s*[:=]\s*['\"]?([^\s'\"]{8,})['\"]?",
-            lambda m: f"{m.group(1)}=***REDACTED***",
-            filtered
-        )
-
-        # Redact tokens (including JWT)
-        filtered = re.sub(
-            r"(?i)(token|auth[_-]?token|access[_-]?key)\s*[:=]\s*['\"]?(Bearer\s+)?([a-zA-Z0-9_\-\.]{20,})['\"]?",
-            lambda m: f"{m.group(1)}=***REDACTED***",
-            filtered
-        )
-
-        return filtered
+    # REMOVED: filter_sensitive_data() - moved to OutputFilter
+    # Use OutputFilter.filter_sensitive_data() for output filtering
 
     @staticmethod
     def validate_ai_input(prompt: str, code: str = None) -> Tuple[str, str]:
@@ -291,42 +210,13 @@ class PromptGuard:
         # Process code block if provided
         sanitized_code = None
         if code:
-            # Check for suspicious code
-            is_safe, patterns = PromptGuard.check_suspicious_code(code)
-            if not is_safe:
-                print(f"Warning: Suspicious code patterns detected: {patterns[:3]}")
-
-            # Sanitize code
+            # Sanitize code (length and control chars only)
             sanitized_code = PromptGuard.sanitize_code_block(code)
 
         return sanitized_prompt, sanitized_code
 
-    @staticmethod
-    def validate_ai_output(output: str) -> str:
-        """
-        Validate and sanitize AI output.
-
-        Args:
-            output: AI-generated output
-
-        Returns:
-            Sanitized output
-
-        Raises:
-            ValueError: If output is invalid
-        """
-        if not output:
-            return output
-
-        # Check for sensitive data
-        is_safe, patterns = PromptGuard.check_sensitive_data(output)
-        if not is_safe:
-            print(f"Warning: Potential sensitive data in output: {patterns[:3]}")
-
-        # Filter sensitive data
-        filtered_output = PromptGuard.filter_sensitive_data(output)
-
-        return filtered_output
+    # REMOVED: validate_ai_output() - AI output validation belongs in OutputFilter
+    # Use OutputFilter.sanitize_ai_response() and OutputFilter.filter_sensitive_data()
 
     @staticmethod
     def create_safe_prompt(instruction: str, code: str = None, context: str = None) -> str:
