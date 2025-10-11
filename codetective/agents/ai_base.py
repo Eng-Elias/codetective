@@ -5,7 +5,7 @@ Base class for AI-powered agents using ChatOllama with security guardrails.
 from langchain_ollama import ChatOllama
 
 from codetective.core.config import Config
-from codetective.security import PromptGuard, PromptInjectionDetected
+from codetective.security import OutputFilter, PromptGuard, PromptInjectionDetected
 from codetective.utils import SystemUtils
 from codetective.utils.system_utils import RequiredTools
 
@@ -66,6 +66,9 @@ class AIAgent:
             
             # Validate and sanitize output
             safe_response = PromptGuard.validate_ai_output(response_content)
+            
+            # Apply output filtering for sensitive data and AI response patterns
+            safe_response = OutputFilter.sanitize_ai_response(safe_response)
             
             return safe_response
             

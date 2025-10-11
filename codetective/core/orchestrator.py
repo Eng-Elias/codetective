@@ -24,6 +24,7 @@ from codetective.models.schemas import (
     ScanConfig,
     ScanResult,
 )
+from codetective.security import OutputFilter
 
 
 class ScanState(TypedDict):
@@ -496,9 +497,13 @@ class CodeDetectiveOrchestrator:
                         if issue_id in issue_status_updates:
                             issue_data["status"] = issue_status_updates[issue_id].value
 
+            # Sanitize scan data before writing to file
+            scan_data_json = json.dumps(scan_data, indent=2, ensure_ascii=False)
+            sanitized_json = OutputFilter.filter_sensitive_data(scan_data_json)
+            
             # Write updated scan results back to file
             with open(scan_results_file, "w", encoding="utf-8") as f:
-                json.dump(scan_data, f, indent=2, ensure_ascii=False)
+                f.write(sanitized_json)
 
             print(f"Updated scan results file: {scan_results_file}")
 

@@ -9,6 +9,7 @@ from codetective.agents.ai_base import AIAgent
 from codetective.agents.base import OutputAgent
 from codetective.core.config import Config
 from codetective.models.schemas import AgentType, Issue, IssueStatus
+from codetective.security import MaliciousCodeDetected, OutputFilter
 from codetective.utils import FileUtils
 from codetective.utils.prompt_builder import PromptBuilder
 
@@ -193,7 +194,17 @@ class EditAgent(OutputAgent, AIAgent):
 
         try:
             response = self.call_ai(prompt, temperature=0.1)
-            return self._extract_fixed_code(response, content)
+            fixed_code = self._extract_fixed_code(response, content)
+            
+            # Validate the fixed code for security issues
+            if fixed_code:
+                try:
+                    OutputFilter.validate_code_fix(fixed_code, allow_dangerous_functions=False)
+                except MaliciousCodeDetected as e:
+                    print(f"Security warning: Generated fix contains dangerous code: {e}")
+                    return ""
+            
+            return fixed_code
         except Exception:
             return ""
 
