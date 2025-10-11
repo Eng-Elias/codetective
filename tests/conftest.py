@@ -80,8 +80,8 @@ def run_command(cmd):
 def load_data(data):
     return pickle.loads(data)
 """
-    file_path.write_text(content)
-    return file_path
+    file_path.write_text(content, encoding="utf-8")
+    return str(file_path)
 
 
 @pytest.fixture
@@ -97,8 +97,8 @@ function renderHTML(userInput) {
 // Hardcoded credentials
 const API_KEY = "sk-1234567890abcdef";
 """
-    file_path.write_text(content)
-    return file_path
+    file_path.write_text(content, encoding="utf-8")
+    return str(file_path)
 
 
 @pytest.fixture
@@ -121,8 +121,8 @@ dist/
 codetective_scan_results*.json
 *.codetective.backup
 """
-    gitignore_path.write_text(content)
-    return gitignore_path
+    gitignore_path.write_text(content, encoding="utf-8")
+    return str(gitignore_path)
 
 
 # ============================================================================

@@ -13,7 +13,7 @@ class TestFileUtilsValidatePaths:
 
     def test_validate_single_existing_file(self, sample_python_file):
         """Test validating a single existing file."""
-        paths = [str(sample_python_file)]
+        paths = [sample_python_file]  # Already a string from fixture
         validated = FileUtils.validate_paths(paths)
         
         assert len(validated) == 1
@@ -37,7 +37,7 @@ class TestFileUtilsValidatePaths:
     def test_validate_mixed_paths(self, sample_python_file, temp_dir):
         """Test validating mix of files, directories, and invalid paths."""
         paths = [
-            str(sample_python_file),
+            sample_python_file,  # Already a string from fixture
             str(temp_dir),
             "/nonexistent/file.py"
         ]
@@ -46,7 +46,7 @@ class TestFileUtilsValidatePaths:
         assert len(validated) == 2
         # Validate that the paths are resolved and contain the expected files
         validated_resolved = [str(Path(p).resolve()) for p in validated]
-        assert str(sample_python_file.resolve()) in validated_resolved
+        assert str(Path(sample_python_file).resolve()) in validated_resolved
         assert str(temp_dir.resolve()) in validated_resolved
 
     def test_validate_empty_list(self):

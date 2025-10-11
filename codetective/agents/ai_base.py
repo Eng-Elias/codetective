@@ -1,16 +1,17 @@
 """
-Base class for AI-powered agents using ChatOllama.
+Base class for AI-powered agents using ChatOllama with security guardrails.
 """
 
 from langchain_ollama import ChatOllama
 
 from codetective.core.config import Config
+from codetective.security import PromptGuard, PromptInjectionDetected
 from codetective.utils import SystemUtils
 from codetective.utils.system_utils import RequiredTools
 
 
 class AIAgent:
-    """Base class for agents that use AI capabilities."""
+    """Base class for agents that use AI capabilities with prompt injection protection."""
 
     def __init__(self, config: Config):
         self.config = config
@@ -30,15 +31,47 @@ class AIAgent:
         available, _ = SystemUtils.check_tool_availability(RequiredTools.OLLAMA)
         return available
 
-    def call_ai(self, prompt: str, temperature: float = 0.1) -> str:
-        """Call AI with consistent error handling."""
+    def call_ai(self, prompt: str, temperature: float = 0.1, code: str = None) -> str:
+        """
+        Call AI with security validation and consistent error handling.
+        
+        Args:
+            prompt: The prompt to send to the AI
+            temperature: Temperature setting for the AI
+            code: Optional code block to validate separately
+            
+        Returns:
+            Sanitized AI response
+            
+        Raises:
+            PromptInjectionDetected: If prompt injection is detected
+            Exception: For other AI errors
+        """
         try:
+            # Validate and sanitize inputs using PromptGuard
+            sanitized_prompt, sanitized_code = PromptGuard.validate_ai_input(prompt, code)
+            
+            # Combine if code was provided
+            if sanitized_code:
+                final_prompt = f"{sanitized_prompt}\n\n```\n{sanitized_code}\n```"
+            else:
+                final_prompt = sanitized_prompt
+            
             # Update temperature if different from default
             if temperature != 0.1:
                 self._llm = ChatOllama(base_url=self.ollama_url, model=self.model, temperature=temperature)
 
-            response = self.llm.invoke(prompt)
-            return str(response.content)
+            response = self.llm.invoke(final_prompt)
+            response_content = str(response.content)
+            
+            # Validate and sanitize output
+            safe_response = PromptGuard.validate_ai_output(response_content)
+            
+            return safe_response
+            
+        except PromptInjectionDetected as e:
+            # Re-raise prompt injection errors
+            raise
         except Exception as e:
             error_msg = self._format_ai_error(e)
             raise Exception(error_msg)

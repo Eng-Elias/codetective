@@ -179,6 +179,7 @@ class TestScanAgent:
 
     def test_scan_agent_execute_success(self, base_config, sample_python_file, sample_issues):
         """Test successful ScanAgent execution."""
+        print(sample_python_file)
         class TestScanAgent(ScanAgent):
             def scan_files(self, files, **kwargs):
                 return sample_issues
