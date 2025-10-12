@@ -46,15 +46,27 @@ Fix Phase: Automated remediation is applied based on user selection
 - **Security Teams**: Security professionals conducting code security assessments
 - **Code Reviewers**: Team leads and senior developers performing code reviews
 
+## Security Architecture
+
+### Security Modules
+- **InputValidator**: Path validation, file size/type limits, command injection prevention
+- **PromptGuard**: Prompt injection detection (20+ patterns), content sanitization
+- **OutputFilter**: Malicious code detection, dangerous function blocking, output validation
+
+### Security Integration Points
+- **FileUtils**: Optional strict validation with `validate_paths(base_dir=...)`
+- **AIAgent**: Automatic prompt/response validation in `call_ai()`
+- **Future**: OutputAgents (EditAgent, CommentAgent) will use OutputFilter
+
 ## Production Architecture (Module 3 Enhancement)
 
 ### New Components for Production Readiness
 
-#### Security Layer (`codetective/security/`)
-- **input_validator.py**: Path validation, file size limits, type validation
-- **prompt_guard.py**: Prompt injection detection and sanitization
-- **output_filter.py**: Sensitive data filtering, output validation
-- **rate_limiter.py**: API rate limiting, resource usage controls
+#### Security Layer (`codetective/security/`) ✅ COMPLETED
+- ✅ **input_validator.py**: Path validation, file size limits, type validation (400+ lines, 65 tests)
+- ✅ **prompt_guard.py**: Prompt injection detection and sanitization (450+ lines, 50 tests)
+- ✅ **output_filter.py**: Sensitive data filtering, output validation (400+ lines, 45 tests)
+- ❌ **rate_limiter.py**: Removed - not needed for local Ollama application
 
 #### Multi-LLM Support (`codetective/llm/`)
 - **base_provider.py**: Abstract LLM interface
