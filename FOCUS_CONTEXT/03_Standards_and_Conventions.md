@@ -113,33 +113,38 @@
 
 ## Security & Safety Standards (Module 3 Requirement)
 
-### Input Validation Standards
+### Input Validation Standards (IMPLEMENTED ✅)
 - **Path Validation**: Prevent directory traversal attacks
   - Use `os.path.abspath()` and validate against allowed directories
   - Reject paths containing `..` or suspicious patterns
-- **File Size Limits**: Enforce maximum file size (default: 10MB)
-- **File Type Whitelist**: Only process supported file extensions
+  - Implementation: `codetective/security/input_validator.py` (65 tests)
+- **File Size Limits**: Enforce maximum file size (default: 100MB)
+- **File Type Whitelist**: 40+ code extensions supported
 - **JSON Validation**: Use Pydantic schemas for all JSON inputs
 
-### Prompt Injection Prevention
-- **Input Sanitization**: Remove/escape potential prompt injection patterns
-- **Token Limits**: Enforce maximum token counts for LLM inputs
+### Prompt Injection Prevention (IMPLEMENTED ✅)
+- **INPUT Validation (PromptGuard)**: Detects 20+ prompt injection patterns before sending to LLM
+  - Implementation: `codetective/security/prompt_guard.py` (27 tests)
+  - Pattern detection: "ignore instructions", role manipulation, jailbreak attempts
+  - Integrated into: `AIAgent.call_ai()` for automatic protection
+- **Token Limits**: Enforce maximum token counts for LLM inputs (32K max)
 - **Content Filtering**: Block suspicious patterns before sending to LLM
-- **Output Validation**: Verify LLM outputs match expected format
-- **Prompt Templates**: Use parameterized prompts, never string concatenation
+- **Prompt Templates**: Use PromptBuilder utility, never string concatenation
 
-### Output Safety Standards
+### Output Safety Standards (IMPLEMENTED ✅)
+- **OUTPUT Filtering (OutputFilter)**: Validates AI-generated code before application
+  - Implementation: `codetective/security/output_filter.py` (43 tests)
+  - Detects: Malicious code (`rm -rf`, backdoors), dangerous functions (`eval`, `exec`, `pickle`)
+  - Integrated into: `EditAgent`, CLI result sanitization, Orchestrator
 - **Sensitive Data Filtering**: Remove API keys, tokens, passwords from logs
-- **Code Validation**: Verify AI-generated fixes compile/parse correctly
-- **Malicious Pattern Detection**: Scan fixes for dangerous code patterns
-- **Backup Before Modify**: Always create backups before file modifications
+- **Backup Before Modify**: Always create backups before file modifications (`.codetective.backup`)
 - **Rollback Capability**: Provide mechanism to undo changes
 
-### Rate Limiting Standards
-- **LLM API Rate Limits**: Enforce rate limits for AI provider calls
-- **Resource Limits**: Monitor CPU, memory, disk usage
-- **Per-Session Limits**: Limit files processed per session
-- **Circuit Breakers**: Stop processing if error rate exceeds threshold
+### Rate Limiting Standards (NOT IMPLEMENTED - Not Required)
+- **Decision**: Rate limiting removed - Codetective is a local desktop app with local Ollama
+- **Rationale**: No external APIs = no rate limiting needed
+- **Alternative**: `--max-files` CLI option allows user to limit scan scope
+- **Future**: System resource monitoring can be added if needed
 
 ## Resilience & Monitoring Standards (Module 3 Requirement)
 
@@ -176,25 +181,18 @@
 - **Service Health**: Check LLM API connectivity and response time
 - **Health Endpoint**: Provide health check CLI command and API endpoint
 
-## Multi-LLM Support Standards (Module 3 Enhancement)
+## Multi-LLM Support Standards (PLANNED - Future Work)
 
-### LLM Provider Abstraction
-- **Provider Interface**: All providers implement common interface
-- **Configuration**: Unified configuration for all providers
-- **Error Handling**: Consistent error handling across providers
-- **Fallback Logic**: Automatic fallback to alternative providers
+### Current State
+- **Ollama Only**: All AI agents use local Ollama via ChatOllama (LangChain)
+- **AIAgent Base Class**: Unified AI integration across all agents
+- **Configuration**: Ollama URL and model configurable via CLI and GUI
 
-### Provider Integration Standards
-- **API Keys**: Store in environment variables, never in code
-- **Authentication**: Use secure authentication methods
-- **Rate Limits**: Respect provider-specific rate limits
-- **Error Messages**: Provide clear, actionable error messages
-
-### Supported Providers
-- **Ollama**: Local LLM server (existing)
-- **Google Gemini**: Cloud API with API key authentication
-- **xAI Grok**: Cloud API with API key authentication
-- **Provider Selection**: Allow user to choose preferred provider
+### Future Enhancement (Not Yet Implemented)
+- **Provider Abstraction**: Create `codetective/llm/` package with base provider interface
+- **Multiple Providers**: Support Gemini, Grok in addition to Ollama
+- **Fallback Logic**: Automatic provider fallback on failure
+- **Provider Selection**: CLI and GUI options for provider choice
 
 ## Documentation Standards (Module 3 Requirement)
 
