@@ -15,6 +15,7 @@ from rich.table import Table
 from codetective.core.config import get_config
 from codetective.core.orchestrator import CodeDetectiveOrchestrator
 from codetective.models.schemas import AgentType, FixConfig, Issue, ScanConfig, ScanResult, SeverityLevel
+from codetective.security import OutputFilter
 from codetective.utils import FileUtils, GitUtils, SystemUtils
 
 console = Console()
@@ -366,8 +367,13 @@ def scan(
         else:
             # Save results to JSON file and show basic summary
             output_path = Path(output)
+            
+            # Sanitize scan results before saving
+            scan_data_json = json.dumps(scan_result.model_dump(), indent=2, default=str)
+            sanitized_json = OutputFilter.filter_sensitive_data(scan_data_json)
+            
             with open(output_path, "w", encoding="utf-8") as f:
-                json.dump(scan_result.model_dump(), f, indent=2, default=str)
+                f.write(sanitized_json)
 
             console.print(f"Results saved to:\n{output_path.absolute()}")
 

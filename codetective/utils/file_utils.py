@@ -7,25 +7,52 @@ import shutil
 from pathlib import Path
 from typing import List, Optional
 
+from codetective.security import InputValidator, ValidationError
+
 
 class FileUtils:
-    """Utility class for file-related operations."""
+    """Utility class for file-related operations with security validation."""
 
     @staticmethod
-    def validate_paths(paths: List[str]) -> List[str]:
-        """Validate and normalize file/directory paths."""
+    def validate_paths(paths: List[str], base_dir: Optional[str] = None) -> List[str]:
+        """
+        Validate and normalize file/directory paths with optional security checks.
+        
+        Args:
+            paths: List of paths to validate
+            base_dir: Optional base directory to restrict paths to (enables strict security checks)
+            
+        Returns:
+            List of validated path strings
+        """
         validated_paths = []
 
         for path_str in paths:
-            path = Path(path_str).resolve()
-
-            if not path.exists():
+            try:
+                if base_dir:
+                    # Use strict InputValidator when base_dir is specified
+                    path = InputValidator.validate_file_path(path_str, base_dir)
+                else:
+                    # Use simple validation for normal operation
+                    path = Path(path_str).resolve()
+                
+                # Check if path exists
+                if not path.exists():
+                    continue
+                
+                # Additional checks
+                if not (path.is_file() or path.is_dir()):
+                    continue
+                
+                validated_paths.append(str(path))
+                
+            except ValidationError as e:
+                # Log warning but continue with other files (from InputValidator)
+                print(f"Skipping invalid path {path_str}: {e}")
                 continue
-
-            if not (path.is_file() or path.is_dir()):
+            except (OSError, ValueError):
+                # Skip paths that can't be resolved or accessed
                 continue
-
-            validated_paths.append(str(path))
 
         return validated_paths
 

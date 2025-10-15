@@ -183,7 +183,7 @@ class TrivyAgent(ScanAgent):
             "HIGH": SeverityLevel.HIGH,
             "MEDIUM": SeverityLevel.MEDIUM,
             "LOW": SeverityLevel.LOW,
-            "UNKNOWN": SeverityLevel.LOW,
+            "UNKNOWN": SeverityLevel.INFO,
         }
 
         return severity_map.get(trivy_severity.upper(), SeverityLevel.MEDIUM)

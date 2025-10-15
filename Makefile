@@ -1,7 +1,7 @@
 # Codetective - Multi-Agent Code Review Tool
 # Makefile for development, testing, and deployment
 
-.PHONY: help install install-dev version setup-tools format lint security-check update-dev-deps clean clean-win build build-win check check-win upload-test upload-test-win upload upload-win prepare-release prepare-release-win beta-release beta-release-win production-release production-release-win git-tag-version git-push-tags
+.PHONY: help install install-dev version setup-tools format lint security-check update-dev-deps test test-unit test-integration test-e2e test-fast test-verbose coverage coverage-report clean clean-win build build-win check check-win upload-test upload-test-win upload upload-win prepare-release prepare-release-win beta-release beta-release-win production-release production-release-win git-tag-version git-push-tags
 
 # Default target
 help:
@@ -19,6 +19,16 @@ help:
 	@echo "  lint            - Run linting (flake8, mypy)"
 	@echo "  security-check  - Run security checks (bandit)"
 	@echo "  update-dev-deps - Update development dependencies"
+	@echo ""
+	@echo "Testing (Module 3):"
+	@echo "  test            - Run all tests with coverage"
+	@echo "  test-unit       - Run unit tests only"
+	@echo "  test-integration- Run integration tests only"
+	@echo "  test-e2e        - Run end-to-end tests only"
+	@echo "  test-fast       - Run tests without slow tests"
+	@echo "  test-verbose    - Run tests with verbose output"
+	@echo "  coverage        - Generate HTML coverage report"
+	@echo "  coverage-report - Open coverage report in browser"
 	@echo ""
 	@echo "Build & Deploy:"
 	@echo "  clean           - Clean build artifacts (Unix/Linux)"
@@ -90,6 +100,32 @@ update-dev-deps:
 	python -m pip install --upgrade pip setuptools wheel
 	pip install --upgrade -e ".[dev]"
 
+# Testing targets (Module 3)
+test:
+	pytest tests/ -v --cov=codetective --cov-report=html --cov-report=term-missing
+
+test-unit:
+	pytest tests/unit/ -v -m unit
+
+test-integration:
+	pytest tests/integration/ -v -m integration
+
+test-e2e:
+	pytest tests/e2e/ -v -m e2e
+
+test-fast:
+	pytest tests/ -v -m "not slow"
+
+test-verbose:
+	pytest tests/ -vv --show-capture=all
+
+coverage:
+	pytest tests/ --cov=codetective --cov-report=html --cov-report=xml
+	@echo "Coverage report generated in htmlcov/index.html"
+
+coverage-report:
+	@python -m webbrowser htmlcov/index.html || start htmlcov/index.html
+
 # Build and deployment targets
 clean:
 	rm -rf build/
@@ -98,6 +134,8 @@ clean:
 	rm -rf .pytest_cache/
 	rm -rf htmlcov/
 	rm -rf .mypy_cache/
+	rm -rf .coverage
+	rm -rf coverage.xml
 
 clean-win:
 	if exist build rmdir /s /q build
@@ -106,6 +144,8 @@ clean-win:
 	if exist .pytest_cache rmdir /s /q .pytest_cache
 	if exist htmlcov rmdir /s /q htmlcov
 	if exist .mypy_cache rmdir /s /q .mypy_cache
+	if exist .coverage del /q .coverage
+	if exist coverage.xml del /q coverage.xml
 
 build: clean
 	python -m build

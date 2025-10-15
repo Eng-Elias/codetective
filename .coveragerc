@@ -1,0 +1,59 @@
+# Coverage.py configuration for Codetective
+
+[run]
+source = codetective
+omit =
+    */tests/*
+    */venv/*
+    */__pycache__/*
+    */site-packages/*
+    */gui/*
+    */cli/*
+    setup.py
+    */__main__.py
+
+branch = True
+parallel = True
+
+[report]
+precision = 2
+show_missing = True
+skip_covered = False
+skip_empty = True
+
+# Fail if coverage is below 70% (Module 3 requirement)
+fail_under = 70
+
+exclude_lines =
+    # Have to re-enable the standard pragma
+    pragma: no cover
+    
+    # Don't complain about missing debug-only code
+    def __repr__
+    
+    # Don't complain if tests don't hit defensive assertion code
+    raise AssertionError
+    raise NotImplementedError
+    
+    # Don't complain if non-runnable code isn't run
+    if __name__ == .__main__.:
+    
+    # Don't complain about abstract methods
+    @abstractmethod
+    @abc.abstractmethod
+    
+    # Don't complain about type checking blocks
+    if TYPE_CHECKING:
+    if typing.TYPE_CHECKING:
+
+[html]
+directory = htmlcov
+title = Codetective Test Coverage Report
+
+[xml]
+output = coverage.xml
+
+[paths]
+source =
+    codetective/
+    */codetective/
