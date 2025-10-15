@@ -14,7 +14,7 @@ For INPUT validation (user prompts, prompt injection), use PromptGuard.
 
 import re
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 
 class MaliciousCodeDetected(Exception):
@@ -285,7 +285,7 @@ class OutputFilter:
                 )
 
     @staticmethod
-    def extract_code_from_markdown(markdown: str) -> Optional[str]:
+    def extract_code_from_markdown(markdown: str) -> Any:
         """
         Safely extract code from markdown code blocks.
 

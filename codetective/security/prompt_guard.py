@@ -12,7 +12,7 @@ For OUTPUT validation (AI responses, generated code), use OutputFilter.
 """
 
 import re
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 
 class PromptInjectionDetected(Exception):
@@ -151,7 +151,7 @@ class PromptGuard:
         return sanitized
 
     @staticmethod
-    def validate_prompt_length(text: str, max_length: int = None) -> None:
+    def validate_prompt_length(text: str, max_length: Optional[int] = None) -> None:
         """
         Validate that a prompt is not too long.
 
@@ -174,7 +174,7 @@ class PromptGuard:
     # Use OutputFilter.filter_sensitive_data() for output filtering
 
     @staticmethod
-    def validate_ai_input(prompt: str, code: str = None) -> Tuple[str, str]:
+    def validate_ai_input(prompt: str, code: Optional[str] = None) -> Tuple[str, Optional[str]]:
         """
         Comprehensive validation and sanitization of AI inputs.
 
@@ -210,7 +210,7 @@ class PromptGuard:
     # Use OutputFilter.sanitize_ai_response() and OutputFilter.filter_sensitive_data()
 
     @staticmethod
-    def create_safe_prompt(instruction: str, code: str = None, context: str = None) -> str:
+    def create_safe_prompt(instruction: str, code: Optional[str] = None, context: Optional[str] = None) -> str:
         """
         Create a safe, validated prompt for AI processing.
 

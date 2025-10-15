@@ -13,7 +13,7 @@ import json
 import os
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 
 from codetective.models.schemas import FixConfig, ScanConfig
 
@@ -281,7 +281,7 @@ class InputValidator:
                 raise ValidationError(f"Command contains dangerous pattern: {pattern}")
 
     @staticmethod
-    def validate_json_data(data: str, max_size_mb: float = 10.0) -> Dict[str, Any]:
+    def validate_json_data(data: str, max_size_mb: float = 10.0) -> Any:
         """
         Validate and parse JSON data.
 

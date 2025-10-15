@@ -2,6 +2,8 @@
 Base class for AI-powered agents using ChatOllama with security guardrails.
 """
 
+from typing import Optional
+
 from langchain_ollama import ChatOllama
 
 from codetective.core.config import Config
@@ -31,7 +33,7 @@ class AIAgent:
         available, _ = SystemUtils.check_tool_availability(RequiredTools.OLLAMA)
         return available
 
-    def call_ai(self, prompt: str, temperature: float = 0.7, code: str = None) -> str:
+    def call_ai(self, prompt: str, temperature: float = 0.7, code: Optional[str] = None) -> str:
         """
         Call AI with the given prompt.
 
