@@ -47,7 +47,7 @@ class AIAgent:
             # ===== INPUT VALIDATION (PromptGuard) =====
             # Validate and sanitize USER inputs before sending to AI
             sanitized_prompt, sanitized_code = PromptGuard.validate_ai_input(prompt, code)
-            
+
             # Combine if code was provided
             if sanitized_code:
                 final_prompt = f"{sanitized_prompt}\n\nCode:\n```\n{sanitized_code}\n```"
@@ -60,16 +60,16 @@ class AIAgent:
             # Make the API call
             response = self.llm.invoke(final_prompt)
             response_content = str(response.content)
-            
+
             # ===== OUTPUT VALIDATION (OutputFilter) =====
             # Sanitize AI-generated OUTPUT before returning
             safe_response = OutputFilter.sanitize_ai_response(response_content)
-            
+
             return safe_response
-            
+
         except PromptInjectionDetected as e:
             # Re-raise prompt injection errors
-            raise
+            raise e
         except Exception as e:
             error_msg = self._format_ai_error(e)
             raise Exception(error_msg)

@@ -19,6 +19,7 @@ from typing import List, Optional, Tuple
 
 class MaliciousCodeDetected(Exception):
     """Raised when malicious code is detected."""
+
     pass
 
 
@@ -84,7 +85,7 @@ class OutputFilter:
             filtered = re.sub(
                 pattern,
                 lambda m: f"{m.group(1)}={redaction_text}" if m.lastindex and m.lastindex >= 1 else redaction_text,
-                filtered
+                filtered,
             )
 
         return filtered
@@ -161,9 +162,7 @@ class OutputFilter:
         # Check for malicious patterns
         is_malicious, malicious_patterns = OutputFilter.detect_malicious_code(code)
         if is_malicious:
-            raise MaliciousCodeDetected(
-                f"Malicious code detected: {', '.join(malicious_patterns)}"
-            )
+            raise MaliciousCodeDetected(f"Malicious code detected: {', '.join(malicious_patterns)}")
 
         # Check for dangerous functions
         if not allow_dangerous_functions:
@@ -190,18 +189,12 @@ class OutputFilter:
 
         # Remove file system paths that might be sensitive
         # Unix-style home paths
-        sanitized = re.sub(
-            r"/home/[^/\s]+",
-            "/home/***",
-            sanitized
-        )
-        
+        sanitized = re.sub(r"/home/[^/\s]+", "/home/***", sanitized)
+
         # Windows paths - use lambda to avoid escape sequence issues
         # Match C:\Users\<username> or C:/Users/<username>
         sanitized = re.sub(
-            r"[Cc]:[/\\][Uu]sers[/\\][^/\\\s]+",
-            lambda m: "C:\\Users\\***",  # Use lambda to return literal string
-            sanitized
+            r"[Cc]:[/\\][Uu]sers[/\\][^/\\\s]+", lambda m: "C:\\Users\\***", sanitized  # Use lambda to return literal string
         )
 
         return sanitized
@@ -246,24 +239,15 @@ class OutputFilter:
         sanitized = OutputFilter.filter_sensitive_data(response)
 
         # Remove excessive whitespace
-        sanitized = re.sub(r'\n\n\n+', '\n\n', sanitized)
+        sanitized = re.sub(r"\n\n\n+", "\n\n", sanitized)
 
         # Remove potential prompt leakage
-        sanitized = re.sub(
-            r"(?i)(system|assistant|user):\s*$",
-            "",
-            sanitized,
-            flags=re.MULTILINE
-        )
+        sanitized = re.sub(r"(?i)(system|assistant|user):\s*$", "", sanitized, flags=re.MULTILINE)
 
         return sanitized.strip()
 
     @staticmethod
-    def validate_fix_output(
-        original_code: str,
-        fixed_code: str,
-        max_change_ratio: float = 0.8
-    ) -> None:
+    def validate_fix_output(original_code: str, fixed_code: str, max_change_ratio: float = 0.8) -> None:
         """
         Validate that a fix is reasonable and not replacing too much code.
 
@@ -327,11 +311,7 @@ class OutputFilter:
         return code
 
     @staticmethod
-    def create_safe_output(
-        content: str,
-        filter_sensitive: bool = True,
-        validate_code: bool = False
-    ) -> str:
+    def create_safe_output(content: str, filter_sensitive: bool = True, validate_code: bool = False) -> str:
         """
         Create a safe output by applying all necessary filters.
 

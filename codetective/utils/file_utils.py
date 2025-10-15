@@ -17,11 +17,11 @@ class FileUtils:
     def validate_paths(paths: List[str], base_dir: Optional[str] = None) -> List[str]:
         """
         Validate and normalize file/directory paths with optional security checks.
-        
+
         Args:
             paths: List of paths to validate
             base_dir: Optional base directory to restrict paths to (enables strict security checks)
-            
+
         Returns:
             List of validated path strings
         """
@@ -35,17 +35,17 @@ class FileUtils:
                 else:
                     # Use simple validation for normal operation
                     path = Path(path_str).resolve()
-                
+
                 # Check if path exists
                 if not path.exists():
                     continue
-                
+
                 # Additional checks
                 if not (path.is_file() or path.is_dir()):
                     continue
-                
+
                 validated_paths.append(str(path))
-                
+
             except ValidationError as e:
                 # Log warning but continue with other files (from InputValidator)
                 print(f"Skipping invalid path {path_str}: {e}")

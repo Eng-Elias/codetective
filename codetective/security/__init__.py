@@ -8,8 +8,8 @@ This package provides security components for:
 """
 
 from codetective.security.input_validator import InputValidator, ValidationError
+from codetective.security.output_filter import MaliciousCodeDetected, OutputFilter
 from codetective.security.prompt_guard import PromptGuard, PromptInjectionDetected
-from codetective.security.output_filter import OutputFilter, MaliciousCodeDetected
 
 __all__ = [
     "InputValidator",

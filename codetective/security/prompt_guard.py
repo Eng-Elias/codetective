@@ -17,6 +17,7 @@ from typing import List, Tuple
 
 class PromptInjectionDetected(Exception):
     """Raised when prompt injection is detected."""
+
     pass
 
 
@@ -33,38 +34,32 @@ class PromptGuard:
         r"ignore\s+(all\s+)?(previous|above|all|the)\s+(instructions|prompts|commands)",
         r"disregard\s+(all\s+)?(previous|above|all|the)\s+(instructions|prompts)",
         r"forget\s+(everything|all)\s+(above|before|previous)",
-
         # Role manipulation
         r"you\s+are\s+now\s+a",
         r"act\s+as\s+(if\s+)?you\s+(are|were)",
         r"pretend\s+to\s+be",
         r"roleplay\s+as",
         r"from\s+now\s+on",
-
         # System prompt escape
         r"</system>",
         r"<system>",
         r"\[system\]",
         r"\[/system\]",
         r"<<<system>>>",
-
         # Delimiter escape
         r"---\s*end\s+of\s+(instructions|prompt|system)",
         r"\#\#\#\s*end",
         r"```\s*(end|system|admin)",
-
         # Instruction injection
         r"new\s+instructions?:",
         r"updated\s+instructions?:",
         r"admin\s+mode",
         r"developer\s+mode",
         r"debug\s+mode",
-
         # Jailbreak attempts
         r"DAN\s+mode",  # "Do Anything Now"
         r"opposite\s+mode",
         r"evil\s+mode",
-
         # Output manipulation
         r"print\s+(your|the)\s+(prompt|instructions|system|rules)",
         r"show\s+(your|the)\s+(prompt|instructions|system)",
@@ -99,9 +94,7 @@ class PromptGuard:
                 detected_patterns.append(pattern)
 
         if detected_patterns and raise_on_detection:
-            raise PromptInjectionDetected(
-                f"Potential prompt injection detected. Patterns: {detected_patterns[:3]}"
-            )
+            raise PromptInjectionDetected(f"Potential prompt injection detected. Patterns: {detected_patterns[:3]}")
 
         return len(detected_patterns) == 0, detected_patterns
 
@@ -120,7 +113,7 @@ class PromptGuard:
             Sanitized text
         """
         # Remove control characters except common ones
-        sanitized = re.sub(r'[\x00-\x08\x0b-\x0c\x0e-\x1f\x7f]', '', text)
+        sanitized = re.sub(r"[\x00-\x08\x0b-\x0c\x0e-\x1f\x7f]", "", text)
 
         # Escape special delimiter sequences
         sanitized = sanitized.replace("</system>", "&lt;/system&gt;")
@@ -129,11 +122,11 @@ class PromptGuard:
         sanitized = sanitized.replace("[/system]", "[/sys]")
 
         # Remove excessive whitespace
-        sanitized = re.sub(r'\s+', ' ', sanitized)
+        sanitized = re.sub(r"\s+", " ", sanitized)
 
         # Limit length
         if len(sanitized) > PromptGuard.MAX_PROMPT_LENGTH:
-            sanitized = sanitized[:PromptGuard.MAX_PROMPT_LENGTH] + "...[truncated]"
+            sanitized = sanitized[: PromptGuard.MAX_PROMPT_LENGTH] + "...[truncated]"
 
         return sanitized.strip()
 
@@ -149,11 +142,11 @@ class PromptGuard:
             Sanitized code
         """
         # Remove null bytes and control characters
-        sanitized = re.sub(r'[\x00-\x08\x0b-\x0c\x0e-\x1f\x7f]', '', code)
+        sanitized = re.sub(r"[\x00-\x08\x0b-\x0c\x0e-\x1f\x7f]", "", code)
 
         # Limit length
         if len(sanitized) > PromptGuard.MAX_CODE_BLOCK_LENGTH:
-            sanitized = sanitized[:PromptGuard.MAX_CODE_BLOCK_LENGTH] + "\n# [Code truncated]"
+            sanitized = sanitized[: PromptGuard.MAX_CODE_BLOCK_LENGTH] + "\n# [Code truncated]"
 
         return sanitized
 
@@ -172,9 +165,7 @@ class PromptGuard:
         max_length = max_length or PromptGuard.MAX_PROMPT_LENGTH
 
         if len(text) > max_length:
-            raise ValueError(
-                f"Prompt too long: {len(text)} characters (max: {max_length})"
-            )
+            raise ValueError(f"Prompt too long: {len(text)} characters (max: {max_length})")
 
     # REMOVED: check_sensitive_data() - moved to OutputFilter
     # Use OutputFilter.detect_sensitive_data() for output validation

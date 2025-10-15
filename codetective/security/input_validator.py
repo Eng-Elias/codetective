@@ -13,13 +13,14 @@ import json
 import os
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-from codetective.models.schemas import ScanConfig, FixConfig
+from codetective.models.schemas import FixConfig, ScanConfig
 
 
 class ValidationError(Exception):
     """Raised when validation fails."""
+
     pass
 
 
@@ -28,14 +29,42 @@ class InputValidator:
 
     # Supported code file extensions
     ALLOWED_CODE_EXTENSIONS = {
-        ".py", ".js", ".ts", ".jsx", ".tsx",
-        ".java", ".c", ".cpp", ".h", ".hpp",
-        ".cs", ".go", ".rs", ".rb", ".php",
-        ".swift", ".kt", ".scala", ".r",
-        ".sh", ".bash", ".zsh", ".yaml", ".yml",
-        ".json", ".xml", ".toml", ".ini",
-        ".sql", ".html", ".css", ".scss",
-        ".vue", ".svelte", ".dart", ".lua"
+        ".py",
+        ".js",
+        ".ts",
+        ".jsx",
+        ".tsx",
+        ".java",
+        ".c",
+        ".cpp",
+        ".h",
+        ".hpp",
+        ".cs",
+        ".go",
+        ".rs",
+        ".rb",
+        ".php",
+        ".swift",
+        ".kt",
+        ".scala",
+        ".r",
+        ".sh",
+        ".bash",
+        ".zsh",
+        ".yaml",
+        ".yml",
+        ".json",
+        ".xml",
+        ".toml",
+        ".ini",
+        ".sql",
+        ".html",
+        ".css",
+        ".scss",
+        ".vue",
+        ".svelte",
+        ".dart",
+        ".lua",
     }
 
     # Maximum file size (100MB)
@@ -46,21 +75,21 @@ class InputValidator:
 
     # Patterns that indicate directory traversal attempts
     TRAVERSAL_PATTERNS = [
-        r"\.\./",      # Parent directory traversal (../)
-        r"\.\.$",      # Ends with ..
-        r"^~/",        # Starts with ~/ (home directory expansion)
-        r"\${",        # Environment variable expansion
+        r"\.\./",  # Parent directory traversal (../)
+        r"\.\.$",  # Ends with ..
+        r"^~/",  # Starts with ~/ (home directory expansion)
+        r"\${",  # Environment variable expansion
     ]
 
     # Dangerous command patterns
     DANGEROUS_COMMAND_PATTERNS = [
-        r"rm\s+-rf\s+/",      # rm -rf / (root deletion)
-        r";\s*rm\s+-rf",      # ; rm -rf (chained command)
-        r"&&\s*rm\s+-rf",     # && rm -rf (conditional)
-        r"\|\s*sh",           # | sh (pipe to shell)
-        r"`.*`",              # `command` (backticks)
-        r"\$\(",              # $(command) (command substitution)
-        r">\s*/dev/",         # > /dev/ (device write)
+        r"rm\s+-rf\s+/",  # rm -rf / (root deletion)
+        r";\s*rm\s+-rf",  # ; rm -rf (chained command)
+        r"&&\s*rm\s+-rf",  # && rm -rf (conditional)
+        r"\|\s*sh",  # | sh (pipe to shell)
+        r"`.*`",  # `command` (backticks)
+        r"\$\(",  # $(command) (command substitution)
+        r">\s*/dev/",  # > /dev/ (device write)
     ]
 
     @staticmethod
@@ -124,9 +153,7 @@ class InputValidator:
         if file_size > InputValidator.MAX_FILE_SIZE_BYTES:
             max_mb = InputValidator.MAX_FILE_SIZE_BYTES / (1024 * 1024)
             actual_mb = file_size / (1024 * 1024)
-            raise ValidationError(
-                f"File too large: {actual_mb:.1f}MB (max: {max_mb}MB)"
-            )
+            raise ValidationError(f"File too large: {actual_mb:.1f}MB (max: {max_mb}MB)")
 
     @staticmethod
     def validate_file_extension(file_path: Path) -> None:
@@ -142,8 +169,7 @@ class InputValidator:
         extension = file_path.suffix.lower()
         if extension not in InputValidator.ALLOWED_CODE_EXTENSIONS:
             raise ValidationError(
-                f"Unsupported file type: {extension}. "
-                f"Allowed: {', '.join(sorted(InputValidator.ALLOWED_CODE_EXTENSIONS))}"
+                f"Unsupported file type: {extension}. " f"Allowed: {', '.join(sorted(InputValidator.ALLOWED_CODE_EXTENSIONS))}"
             )
 
     @staticmethod
@@ -173,10 +199,7 @@ class InputValidator:
         return path
 
     @staticmethod
-    def validate_file_list(
-        file_paths: List[str],
-        base_dir: Optional[str] = None
-    ) -> List[Path]:
+    def validate_file_list(file_paths: List[str], base_dir: Optional[str] = None) -> List[Path]:
         """
         Validate a list of files.
 
@@ -191,10 +214,7 @@ class InputValidator:
             ValidationError: If any file fails validation
         """
         if len(file_paths) > InputValidator.MAX_FILES_PER_SCAN:
-            raise ValidationError(
-                f"Too many files: {len(file_paths)} "
-                f"(max: {InputValidator.MAX_FILES_PER_SCAN})"
-            )
+            raise ValidationError(f"Too many files: {len(file_paths)} " f"(max: {InputValidator.MAX_FILES_PER_SCAN})")
 
         validated_paths = []
         for file_path in file_paths:
@@ -258,9 +278,7 @@ class InputValidator:
         """
         for pattern in InputValidator.DANGEROUS_COMMAND_PATTERNS:
             if re.search(pattern, command, re.IGNORECASE):
-                raise ValidationError(
-                    f"Command contains dangerous pattern: {pattern}"
-                )
+                raise ValidationError(f"Command contains dangerous pattern: {pattern}")
 
     @staticmethod
     def validate_json_data(data: str, max_size_mb: float = 10.0) -> Dict[str, Any]:
@@ -278,14 +296,12 @@ class InputValidator:
             ValidationError: If JSON is invalid or too large
         """
         # Check size
-        data_size = len(data.encode('utf-8'))
+        data_size = len(data.encode("utf-8"))
         max_size_bytes = max_size_mb * 1024 * 1024
 
         if data_size > max_size_bytes:
             actual_mb = data_size / (1024 * 1024)
-            raise ValidationError(
-                f"JSON data too large: {actual_mb:.1f}MB (max: {max_size_mb}MB)"
-            )
+            raise ValidationError(f"JSON data too large: {actual_mb:.1f}MB (max: {max_size_mb}MB)")
 
         # Parse JSON
         try:
@@ -312,12 +328,9 @@ class InputValidator:
                 InputValidator.validate_file_path(path)
 
         # Validate file count
-        if hasattr(config, 'max_files') and config.max_files:
+        if hasattr(config, "max_files") and config.max_files:
             if config.max_files > InputValidator.MAX_FILES_PER_SCAN:
-                raise ValidationError(
-                    f"max_files too high: {config.max_files} "
-                    f"(max: {InputValidator.MAX_FILES_PER_SCAN})"
-                )
+                raise ValidationError(f"max_files too high: {config.max_files} " f"(max: {InputValidator.MAX_FILES_PER_SCAN})")
 
     @staticmethod
     def validate_fix_config(config: FixConfig) -> None:
@@ -353,13 +366,13 @@ class InputValidator:
         filename = re.sub(r'[<>:"|?*]', "_", filename)
 
         # Remove control characters
-        filename = re.sub(r'[\x00-\x1f\x7f]', "", filename)
+        filename = re.sub(r"[\x00-\x1f\x7f]", "", filename)
 
         # Limit length
         max_length = 255
         if len(filename) > max_length:
             name, ext = os.path.splitext(filename)
-            name = name[:max_length - len(ext)]
+            name = name[: max_length - len(ext)]
             filename = name + ext
 
         return filename

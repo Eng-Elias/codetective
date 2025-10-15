@@ -195,7 +195,7 @@ class EditAgent(OutputAgent, AIAgent):
         try:
             response = self.call_ai(prompt, temperature=0.1)
             fixed_code = self._extract_fixed_code(response, content)
-            
+
             # Validate the fixed code for security issues
             if fixed_code:
                 try:
@@ -203,7 +203,7 @@ class EditAgent(OutputAgent, AIAgent):
                 except MaliciousCodeDetected as e:
                     print(f"Security warning: Generated fix contains dangerous code: {e}")
                     return ""
-            
+
             return fixed_code
         except Exception:
             return ""

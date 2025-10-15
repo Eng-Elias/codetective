@@ -367,11 +367,11 @@ def scan(
         else:
             # Save results to JSON file and show basic summary
             output_path = Path(output)
-            
+
             # Sanitize scan results before saving
             scan_data_json = json.dumps(scan_result.model_dump(), indent=2, default=str)
             sanitized_json = OutputFilter.filter_sensitive_data(scan_data_json)
-            
+
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write(sanitized_json)
 
