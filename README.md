@@ -306,6 +306,30 @@ Codetective uses a multi-agent architecture orchestrated by LangGraph:
         └──────────────┘ └─────────────┘ └──────────────┘
 ```
 
+## Recent Updates
+
+### Security Enhancements ✅
+**Three-Layer Defense Architecture** - Complete security refactoring with clear separation of concerns:
+- **InputValidator** - Validates file paths, sizes, types, and command safety before processing
+- **PromptGuard** - INPUT validation: Detects 20+ prompt injection patterns, sanitizes user inputs before AI
+- **OutputFilter** - OUTPUT validation: Detects 8+ malicious code patterns, blocks 11 dangerous functions, filters sensitive data
+
+### Testing & Quality ✅
+- **>75% overall test coverage** with 400+ tests across the codebase
+- **Agent tests**: Comprehensive coverage for all scan and output agents
+- **Integration tests**: End-to-end security flow validation
+- **Automated testing**: pytest with coverage tracking
+
+### Documentation ✅
+- **ARCHITECTURE.md** - architecture overview
+- **DEPLOYMENT.md** - deployment guide
+
+### Agent System Improvements ✅
+- **Automatic security validation** - All AI calls protected by PromptGuard and OutputFilter
+- **Enhanced error handling** - Graceful failures with detailed error messages
+- **Consistent response processing** - Standardized AI response cleaning and validation
+
+
 ## Contributing
 
 Contributions to the Codetective are welcome. Follow the [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
